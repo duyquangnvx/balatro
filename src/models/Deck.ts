@@ -7,12 +7,14 @@ export class Deck {
     private cards: Card[];
     private scene: Scene;
     private totalCards: number = 52;
+    private discardedCards: number = 0;
     private deckText: Phaser.GameObjects.Text;
     private currentStyle: DeckStyle;
 
     constructor(scene: Scene) {
         this.scene = scene;
         this.cards = [];
+        this.discardedCards = 0;
         this.currentStyle = DeckStyle.RED; // Default style
         
         // Create deck count text first
@@ -63,7 +65,17 @@ export class Deck {
     }
 
     public drawCard(): Card | undefined {
+        if (this.cards.length === 0) {
+            console.log("Deck is empty!");
+            return undefined;
+        }
+        
         const card = this.cards.pop();
+        if (card) {
+            // Set a higher depth for drawn cards
+            card.setDepth(10);
+            this.discardedCards++; // Increment discarded count when card is drawn
+        }
         this.updateDeckCount();
         return card;
     }
@@ -80,17 +92,25 @@ export class Deck {
     }
 
     public returnCard(card: Card): void {
+        // Flip card face down
         card.flip(false);
+        
+        // Move card back to deck position
+        card.setPosition(
+            this.scene.cameras.main.width - 150,  // Deck position X
+            50                                    // Deck position Y
+        );
+        
+        // Reset depth to be at the bottom
+        card.setDepth(0);
+        
+        // Add card back to deck
         this.cards.push(card);
         this.updateDeckCount();
     }
 
-    public getRemainingCards(): number {
-        return this.cards.length;
-    }
-
     private getDeckCountText(): string {
-        return `${this.cards.length}/${this.totalCards}`;
+        return `${this.cards.length}/${this.totalCards - this.discardedCards}`;
     }
 
     private updateDeckCount(): void {
@@ -129,5 +149,26 @@ export class Deck {
     public destroy(): void {
         this.cards.forEach(card => card.destroy());
         this.deckText.destroy();
+    }
+
+    /**
+     * Get the number of cards that have been discarded (destroyed)
+     */
+    public getDiscardedCount(): number {
+        return this.discardedCards;
+    }
+
+    /**
+     * Get the number of cards remaining in the deck
+     */
+    public getRemainingCards(): number {
+        return this.cards.length;
+    }
+
+    /**
+     * Get the total number of cards still in play (not discarded)
+     */
+    public getTotalCardsInPlay(): number {
+        return this.totalCards - this.discardedCards;
     }
 } 

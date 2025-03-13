@@ -5,6 +5,13 @@ import { Suit, Rank } from './types';
 import EventBus from '../base/EventBus';
 import { GameEvents } from '../data/GameEvents';
 
+// Enum để theo dõi cách sắp xếp hiện tại
+enum SortType {
+    NONE,
+    BY_SUIT,
+    BY_RANK
+}
+
 export class Hand {
     private scene: Scene;
     private cards: Card[] = [];
@@ -14,6 +21,7 @@ export class Hand {
     private readonly BOTTOM_MARGIN = 100;
     private readonly SELECTED_OFFSET = 20;
     private eventBus: EventBus;
+    private currentSortType: SortType = SortType.NONE;
 
     constructor(scene: Scene, deck: Deck) {
         this.scene = scene;
@@ -93,17 +101,27 @@ export class Hand {
     }
 
     public addCards(cards: Card[]): void {
+        // Add cards to our collection
         this.cards.push(...cards);
         
+        // Ensure each card is properly set up
         cards.forEach(card => {
             // Add card to scene if it's not already added
             if (!card.scene) {
                 this.scene.add.existing(card);
             }
+            
+            // Make sure card is face up
             card.flip(true);
         });
 
-        this.arrangeCards(); // Position the cards
+        // Apply current sort if any
+        this.applySorting();
+        
+        // Arrange all cards in hand
+        this.arrangeCards();
+        
+        // Emit event after cards are added and arranged
         this.eventBus.emit(GameEvents.HAND_UPDATED, this.cards);
     }
 
@@ -142,23 +160,57 @@ export class Hand {
     private discardSelectedCards(): void {
         if (this.selectedCards.size === 0) return;
 
-        // Remove and return selected cards to deck
+        // Store the number of cards to draw
+        const numCardsToReplace = this.selectedCards.size;
+
+        // Remove selected cards and destroy them
         this.selectedCards.forEach(card => {
             const index = this.cards.indexOf(card);
             if (index !== -1) {
                 this.cards.splice(index, 1);
-                card.setSelected(false); // Clear selection before returning to deck
-                this.deck.returnCard(card);
+                card.setSelected(false); // Clear selection before destroying
+                
+                // Destroy the card instead of returning it to the deck
+                card.destroy();
             }
         });
 
-        // Draw new cards
-        const newCards = this.deck.drawCards(this.selectedCards.size);
+        // Clear selection set before drawing new cards
         this.selectedCards.clear();
+        
+        // Rearrange remaining cards first
+        this.arrangeCards();
+        
+        // Draw new cards and add them to hand
+        const newCards = this.deck.drawCards(numCardsToReplace);
+        
+        // Make sure new cards are face up before adding to hand
+        newCards.forEach(card => {
+            card.flip(true); // Ensure card is face up
+        });
+        
+        // Add new cards to hand (which will apply sorting and arrange them)
         this.addCards(newCards);
     }
 
-    private sortBySuit(): void {
+    // Apply the current sorting method
+    private applySorting(): void {
+        switch (this.currentSortType) {
+            case SortType.BY_SUIT:
+                this.sortBySuitInternal();
+                break;
+            case SortType.BY_RANK:
+                this.sortByRankInternal();
+                break;
+            case SortType.NONE:
+            default:
+                // No sorting needed
+                break;
+        }
+    }
+
+    // Internal method for sorting by suit
+    private sortBySuitInternal(): void {
         this.cards.sort((a, b) => {
             // First sort by suit
             const suitCompare = Object.values(Suit).indexOf(a.suit) - Object.values(Suit).indexOf(b.suit);
@@ -169,11 +221,10 @@ export class Hand {
             const rankB = Object.values(Rank).indexOf(b.rank);
             return rankA - rankB;
         });
-        
-        this.arrangeCards();
     }
 
-    private sortByRank(): void {
+    // Internal method for sorting by rank
+    private sortByRankInternal(): void {
         this.cards.sort((a, b) => {
             // First sort by rank
             const rankA = Object.values(Rank).indexOf(a.rank);
@@ -183,7 +234,19 @@ export class Hand {
             // Then by suit
             return Object.values(Suit).indexOf(a.suit) - Object.values(Suit).indexOf(b.suit);
         });
-        
+    }
+
+    // Public method for sorting by suit (called from UI)
+    private sortBySuit(): void {
+        this.currentSortType = SortType.BY_SUIT;
+        this.sortBySuitInternal();
+        this.arrangeCards();
+    }
+
+    // Public method for sorting by rank (called from UI)
+    private sortByRank(): void {
+        this.currentSortType = SortType.BY_RANK;
+        this.sortByRankInternal();
         this.arrangeCards();
     }
 
