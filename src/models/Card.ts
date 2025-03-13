@@ -6,7 +6,8 @@ import EventBus from '../base/EventBus';
 import { GameEvents } from '../data/GameEvents';
 
 export class Card extends GameObjects.Container {
-    private sprite: GameObjects.Sprite;
+    private faceSprite: GameObjects.Sprite;
+    private backSprite: GameObjects.Sprite;
     private enhancementSprite: GameObjects.Sprite;
     private border: GameObjects.Graphics;
     private shakeAnimation?: Phaser.Tweens.Tween;
@@ -34,20 +35,26 @@ export class Card extends GameObjects.Container {
         this.enhancementSprite.setVisible(false); // Hide initially when card is face down
         this.add(this.enhancementSprite);
         
-        // Initialize card sprite with back texture initially (using DECK atlas)
-        this.sprite = scene.add.sprite(0, 0, AssetManager.ATLAS.DECK, this.getCardBackFrame());
-        this.add(this.sprite);
+        // Initialize face sprite (initially hidden)
+        this.faceSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.CARDS, this.getFaceCardFrame());
+        this.faceSprite.setVisible(false); // Hide initially
+        this.add(this.faceSprite);
+        
+        // Initialize back sprite
+        this.backSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        this.backSprite.setVisible(true); // Show initially
+        this.add(this.backSprite);
         
         // Scale enhancement sprite to match card size
-        this.enhancementSprite.setScale(this.sprite.width / this.enhancementSprite.width);
+        this.enhancementSprite.setScale(this.faceSprite.width / this.enhancementSprite.width);
         
         // Create border graphics (initially invisible)
         this.border = scene.add.graphics();
         this.add(this.border);
         
         // Set the size of the container based on the sprite dimensions
-        const width = this.sprite.width;
-        const height = this.sprite.height;
+        const width = this.faceSprite.width;
+        const height = this.faceSprite.height;
         this.setSize(width, height);
         
         // Make the entire container interactive with a properly centered hitArea
@@ -110,23 +117,6 @@ export class Card extends GameObjects.Container {
     }
 
     /**
-     * Get the appropriate texture key based on card state
-     * - CARDS atlas for face-up cards
-     * - DECK atlas for face-down cards
-     */
-    private getTextureKey(): string {
-        // Use CARDS atlas for face-up cards, DECK atlas for face-down cards
-        return this.isVisible ? AssetManager.ATLAS.CARDS : AssetManager.ATLAS.DECK;
-    }
-
-    /**
-     * Get the appropriate frame name based on card state
-     */
-    private getFrameName(): string {
-        return this.isVisible ? this.getFaceCardFrame() : this.getCardBackFrame();
-    }
-
-    /**
      * Get the frame name for the face-up card (from CARDS atlas)
      * @returns The frame name for the face-up card
      */
@@ -155,11 +145,8 @@ export class Card extends GameObjects.Container {
      */
     public setDeckStyle(style: DeckStyle): void {
         this.deckStyle = style;
-        // Update the texture if the card is face down
-        if (!this.isVisible) {
-            // Use DECK atlas for card backs
-            this.sprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
-        }
+        // Update the back texture
+        this.backSprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
     }
 
     /**
@@ -197,8 +184,10 @@ export class Card extends GameObjects.Container {
      */
     public flip(faceUp: boolean = true): void {
         this.isVisible = faceUp;
-        // Switch between CARDS and DECK atlas based on face up/down state
-        this.sprite.setTexture(this.getTextureKey(), this.getFrameName());
+        
+        // Show/hide appropriate sprites
+        this.faceSprite.setVisible(faceUp);
+        this.backSprite.setVisible(!faceUp);
         
         // Show/hide enhancement sprite based on card face
         this.enhancementSprite.setVisible(faceUp);
@@ -238,8 +227,8 @@ export class Card extends GameObjects.Container {
         if (this.selected) {
             // Draw a yellow border around the card
             this.border.lineStyle(3, 0xffff00, 1);
-            const width = this.sprite.width;
-            const height = this.sprite.height;
+            const width = this.faceSprite.width;
+            const height = this.faceSprite.height;
             // Draw border relative to container center
             this.border.strokeRect(
                 -width / 2 - 2,
@@ -260,13 +249,15 @@ export class Card extends GameObjects.Container {
     }
 
     public getSprite(): GameObjects.Sprite {
-        return this.sprite;
+        return this.isVisible ? this.faceSprite : this.backSprite;
     }
 
     public destroy(): void {
         this.stopShake();
         this.border.destroy();
-        this.sprite.destroy();
+        this.faceSprite.destroy();
+        this.backSprite.destroy();
+        this.enhancementSprite.destroy();
     }
 
     private onClick(): void {
