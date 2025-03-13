@@ -3,6 +3,7 @@ export const GameEvents = {
     CARD_SELECTED: 'card:selected',
     CARD_DESELECTED: 'card:deselected',
     CARD_FLIPPED: 'card:flipped',
+    CARD_ENHANCED: 'card:enhanced',
 
     // Hand events
     HAND_UPDATED: 'hand:updated',

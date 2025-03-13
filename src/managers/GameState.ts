@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { Deck } from '../models/Deck';
 import { Hand } from '../models/Hand';
 import { DeckStyle } from '../models/DeckStyle';
+import { Card } from '../models/Card';
 
 /**
  * GameState - Manages the overall game state
@@ -54,6 +55,13 @@ export class GameState {
      */
     public getDeck(): Deck {
         return this.deck;
+    }
+    
+    /**
+     * Get the selected cards from the player's hand
+     */
+    public getSelectedCards(): Card[] {
+        return this.playerHand.getSelectedCards();
     }
     
     /**

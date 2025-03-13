@@ -1,4 +1,4 @@
-import { ICard, Suit, Rank } from './types';
+import { ICard, Suit, Rank, Enhancement } from './types';
 import { Scene, GameObjects } from 'phaser';
 import { AssetManager } from '../managers/AssetManager';
 import { DeckStyle } from './DeckStyle';
@@ -7,6 +7,7 @@ import { GameEvents } from '../data/GameEvents';
 
 export class Card extends GameObjects.Container {
     private sprite: GameObjects.Sprite;
+    private enhancementSprite: GameObjects.Sprite;
     private border: GameObjects.Graphics;
     private shakeAnimation?: Phaser.Tweens.Tween;
     public suit: Suit;
@@ -17,6 +18,7 @@ export class Card extends GameObjects.Container {
     private selected: boolean = false;
     private eventBus: EventBus;
     private initialized: boolean = false;
+    private enhancement: Enhancement = Enhancement.NORMAL;
 
     constructor(scene: Scene, x: number, y: number, suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
         super(scene, 0, 0); // Initialize at 0,0 first
@@ -27,9 +29,17 @@ export class Card extends GameObjects.Container {
         this.deckStyle = deckStyle;
         this.value = this.calculateValue();
         
+        // Initialize enhancement sprite first (below the card face)
+        this.enhancementSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
+        this.enhancementSprite.setVisible(false); // Hide initially when card is face down
+        this.add(this.enhancementSprite);
+        
         // Initialize card sprite with back texture initially (using DECK atlas)
         this.sprite = scene.add.sprite(0, 0, AssetManager.ATLAS.DECK, this.getCardBackFrame());
         this.add(this.sprite);
+        
+        // Scale enhancement sprite to match card size
+        this.enhancementSprite.setScale(this.sprite.width / this.enhancementSprite.width);
         
         // Create border graphics (initially invisible)
         this.border = scene.add.graphics();
@@ -133,6 +143,13 @@ export class Card extends GameObjects.Container {
     }
 
     /**
+     * Get the frame name for the enhancement sprite
+     */
+    private getEnhancementFrame(): string {
+        return `${this.enhancement}.png`;
+    }
+
+    /**
      * Set the deck style for this card
      * @param style The new deck style
      */
@@ -153,6 +170,28 @@ export class Card extends GameObjects.Container {
     }
 
     /**
+     * Set the enhancement type for this card
+     * @param enhancement The new enhancement type
+     */
+    public setEnhancement(enhancement: Enhancement): void {
+        this.enhancement = enhancement;
+        this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
+        
+        // Only show enhancement when card is face up
+        this.enhancementSprite.setVisible(this.isVisible);
+        
+        // Emit event for enhancement change
+        this.eventBus.emit(GameEvents.CARD_ENHANCED, this, enhancement);
+    }
+
+    /**
+     * Get the current enhancement type
+     */
+    public getEnhancement(): Enhancement {
+        return this.enhancement;
+    }
+
+    /**
      * Flip the card face up or face down
      * @param faceUp Whether the card should be face up
      */
@@ -160,6 +199,9 @@ export class Card extends GameObjects.Container {
         this.isVisible = faceUp;
         // Switch between CARDS and DECK atlas based on face up/down state
         this.sprite.setTexture(this.getTextureKey(), this.getFrameName());
+        
+        // Show/hide enhancement sprite based on card face
+        this.enhancementSprite.setVisible(faceUp);
     }
 
     /**

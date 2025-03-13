@@ -21,6 +21,18 @@ export enum Rank {
     KING = 'K'
 }
 
+export enum Enhancement {
+    NORMAL = 'normal',
+    GOLD = 'gold',
+    GLASS = 'glass',
+    STEEL = 'steel',
+    STONE = 'stone',
+    WILD = 'wild',
+    MULT = 'mult',
+    BONUS = 'bonus',
+    LUCKY = 'lucky'
+}
+
 export interface ICard {
     suit: Suit;
     rank: Rank;

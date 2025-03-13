@@ -9,7 +9,8 @@ export class AssetManager {
     // Asset types - using filenames as values
     public static readonly ATLAS = {
         DECK: 'Deck',
-        CARDS: 'Cards'
+        CARDS: 'Cards',
+        ENHANCERS: 'Enhancers'
     };
     
     public static readonly IMAGES = {

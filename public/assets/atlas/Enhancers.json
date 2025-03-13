@@ -1,0 +1,195 @@
+{
+	"frames": {
+		"bonus.png": {
+			"frame": {
+				"x": 1,
+				"y": 1,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"glass.png": {
+			"frame": {
+				"x": 145,
+				"y": 1,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"gold.png": {
+			"frame": {
+				"x": 289,
+				"y": 1,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"lucky.png": {
+			"frame": {
+				"x": 1,
+				"y": 193,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"mult.png": {
+			"frame": {
+				"x": 145,
+				"y": 193,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"normal.png": {
+			"frame": {
+				"x": 289,
+				"y": 193,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"steel.png": {
+			"frame": {
+				"x": 433,
+				"y": 1,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"stone.png": {
+			"frame": {
+				"x": 433,
+				"y": 193,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		},
+		"wild.png": {
+			"frame": {
+				"x": 1,
+				"y": 385,
+				"w": 142,
+				"h": 190
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 142,
+				"h": 190
+			},
+			"sourceSize": {
+				"w": 142,
+				"h": 190
+			}
+		}
+	},
+	"meta": {
+		"app": "http://www.codeandweb.com/texturepacker",
+		"version": "1.0",
+		"image": "spritesheet.png",
+		"format": "RGBA8888",
+		"size": {
+			"w": 576,
+			"h": 576
+		},
+		"scale": "1"
+	}
+}
