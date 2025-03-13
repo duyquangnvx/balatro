@@ -10,6 +10,8 @@ export class Deck {
     private discardedCards: number = 0;
     private deckText: Phaser.GameObjects.Text;
     private currentStyle: DeckStyle;
+    private deckX: number;
+    private deckY: number;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -17,16 +19,20 @@ export class Deck {
         this.discardedCards = 0;
         this.currentStyle = DeckStyle.RED; // Default style
         
-        // Create deck count text first
+        // Set deck position to bottom right
+        this.deckX = this.scene.cameras.main.width - 100;
+        this.deckY = this.scene.cameras.main.height - 120;
+        
+        // Create deck count text
         this.deckText = this.scene.add.text(
-            this.scene.cameras.main.width - 100, 
-            50, 
+            this.deckX + 40, 
+            this.deckY + 105, // Below the deck
             "0/52", // Initial text before cards are created
             { 
-                fontSize: '24px', 
+                fontSize: '18px', 
                 color: '#ffffff' 
             }
-        );
+        ).setOrigin(0.5).setDepth(100);
         
         // Then initialize the deck
         this.initializeDeck();
@@ -44,8 +50,8 @@ export class Deck {
                 // Create card at deck position
                 const card = new Card(
                     this.scene,
-                    this.scene.cameras.main.width - 150,  // Deck position X
-                    50,                                   // Deck position Y
+                    this.deckX,  // Deck position X
+                    this.deckY,  // Deck position Y
                     suit,
                     rank,
                     this.currentStyle
@@ -97,8 +103,8 @@ export class Deck {
         
         // Move card back to deck position
         card.setPosition(
-            this.scene.cameras.main.width - 150,  // Deck position X
-            50                                    // Deck position Y
+            this.deckX,  // Deck position X
+            this.deckY   // Deck position Y
         );
         
         // Reset depth to be at the bottom

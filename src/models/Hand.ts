@@ -18,10 +18,17 @@ export class Hand {
     private deck: Deck;
     private selectedCards: Set<Card> = new Set();
     private readonly CARD_SPACING = 80;
-    private readonly BOTTOM_MARGIN = 100;
+    private readonly BOTTOM_MARGIN = 200;
     private readonly SELECTED_OFFSET = 20;
     private eventBus: EventBus;
     private currentSortType: SortType = SortType.NONE;
+    
+    // UI elements
+    private playHandButton: Phaser.GameObjects.Text;
+    private discardButton: Phaser.GameObjects.Text;
+    private sortContainer: Phaser.GameObjects.Container;
+    private sortByRankButton: Phaser.GameObjects.Text;
+    private sortBySuitButton: Phaser.GameObjects.Text;
 
     constructor(scene: Scene, deck: Deck) {
         this.scene = scene;
@@ -52,47 +59,94 @@ export class Hand {
     }
 
     private createButtons(): void {
-        // Discard button
-        const discardButton = this.scene.add.text(
-            10, 
-            this.scene.cameras.main.height - 40, 
-            'Discard Selected', 
+        const centerX = this.scene.cameras.main.width / 2;
+        const buttonY = this.scene.cameras.main.height - 50;
+        
+        // Tạo nút Play Hand (sẽ implement sau)
+        this.playHandButton = this.scene.add.text(
+            centerX - 250, 
+            buttonY, 
+            'Play Hand', 
             { 
                 fontSize: '20px',
                 color: '#ffffff',
-                backgroundColor: '#ff0000',
+                backgroundColor: '#555555',
+                padding: { x: 15, y: 10 }
+            }
+        ).setOrigin(0.5).setInteractive();
+        
+        // Tạo container cho Sort Hand và các nút con
+        this.sortContainer = this.scene.add.container(centerX, buttonY);
+        
+        // Background cho sort container
+        const sortBackground = this.scene.add.graphics();
+        sortBackground.fillStyle(0x006600, 1);
+        sortBackground.fillRoundedRect(-80, -30, 160, 60, 10);
+        sortBackground.lineStyle(2, 0xFFFFFF, 1);
+        sortBackground.strokeRoundedRect(-80, -30, 160, 60, 10);
+        this.sortContainer.add(sortBackground);
+        
+        // Tiêu đề Sort Hand
+        const sortTitle = this.scene.add.text(
+            0, 
+            -20, 
+            'Sort Hand', 
+            { 
+                fontSize: '16px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5);
+        this.sortContainer.add(sortTitle);
+        
+        // Nút Sort by Rank
+        this.sortByRankButton = this.scene.add.text(
+            -40, 
+            5, 
+            'Rank', 
+            {
+                fontSize: '14px',
+                color: '#000000',
+                backgroundColor: '#FFA500', // Orange
                 padding: { x: 10, y: 5 }
             }
-        ).setInteractive();
-
-        // Sort buttons
-        const sortBySuitButton = this.scene.add.text(
-            200,
-            this.scene.cameras.main.height - 40,
-            'Sort by Suit',
+        ).setOrigin(0.5).setInteractive();
+        this.sortContainer.add(this.sortByRankButton);
+        
+        // Nút Sort by Suit
+        this.sortBySuitButton = this.scene.add.text(
+            40, 
+            5, 
+            'Suit', 
             {
+                fontSize: '14px',
+                color: '#000000',
+                backgroundColor: '#FFA500', // Orange
+                padding: { x: 10, y: 5 }
+            }
+        ).setOrigin(0.5).setInteractive();
+        this.sortContainer.add(this.sortBySuitButton);
+        
+        // Nút Discard
+        this.discardButton = this.scene.add.text(
+            centerX + 250, 
+            buttonY, 
+            'Discard', 
+            { 
                 fontSize: '20px',
                 color: '#ffffff',
-                backgroundColor: '#0000ff',
-                padding: { x: 10, y: 5 }
+                backgroundColor: '#990000',
+                padding: { x: 15, y: 10 }
             }
-        ).setInteractive();
-
-        const sortByRankButton = this.scene.add.text(
-            350,
-            this.scene.cameras.main.height - 40,
-            'Sort by Rank',
-            {
-                fontSize: '20px',
-                color: '#ffffff',
-                backgroundColor: '#0000ff',
-                padding: { x: 10, y: 5 }
-            }
-        ).setInteractive();
-
-        discardButton.on('pointerdown', () => this.discardSelectedCards());
-        sortBySuitButton.on('pointerdown', () => this.sortBySuit());
-        sortByRankButton.on('pointerdown', () => this.sortByRank());
+        ).setOrigin(0.5).setInteractive();
+        
+        // Thêm event listeners
+        this.playHandButton.on('pointerdown', () => {
+            console.log('Play Hand clicked - to be implemented');
+        });
+        
+        this.sortByRankButton.on('pointerdown', () => this.sortByRank());
+        this.sortBySuitButton.on('pointerdown', () => this.sortBySuit());
+        this.discardButton.on('pointerdown', () => this.discardSelectedCards());
     }
 
     private drawInitialHand(): void {
@@ -155,6 +209,25 @@ export class Hand {
             card.setPosition(x, y);
             card.setDepth(index); // Ensure proper layering
         });
+        
+        // Hiển thị số lượng lá bài
+        const cardCountText = `${this.cards.length}/8`;
+        
+        // Tìm và cập nhật text hiện có hoặc tạo mới nếu chưa có
+        let countText = this.scene.children.getByName('handCountText') as Phaser.GameObjects.Text;
+        if (!countText) {
+            countText = this.scene.add.text(
+                this.scene.cameras.main.width / 2,
+                baseY + 50,
+                cardCountText,
+                {
+                    fontSize: '18px',
+                    color: '#ffffff'
+                }
+            ).setOrigin(0.5).setName('handCountText');
+        } else {
+            countText.setText(cardCountText);
+        }
     }
 
     private discardSelectedCards(): void {
