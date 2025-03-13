@@ -1,21 +1,27 @@
-import { Game as MainGame } from './scenes/Game';
-import { AUTO, Game, Scale,Types } from 'phaser';
+import 'phaser';
+import { PreloadScene } from './scenes/PreloadScene';
+import { Game } from './scenes/Game';
+import { SceneKeys } from './scenes/SceneKeys';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
-const config: Types.Core.GameConfig = {
-    type: AUTO,
-    width: 1024,
-    height: 768,
+const config: Phaser.Types.Core.GameConfig = {
+    type: Phaser.AUTO,
+    width: 1280,
+    height: 720,
     parent: 'game-container',
-    backgroundColor: '#028af8',
-    scale: {
-        mode: Scale.FIT,
-        autoCenter: Scale.CENTER_BOTH
+    scene: [PreloadScene, Game],
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { x: 0, y: 0 },
+            debug: false
+        }
     },
-    scene: [
-        MainGame
-    ]
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    }
 };
 
-export default new Game(config);
+new Phaser.Game(config);

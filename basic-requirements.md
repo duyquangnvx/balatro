@@ -1,0 +1,4 @@
+- Tạo 1 game bài dựa trên luật Poker bằng PhaserJS.
+- Đảm bảo tuân thủ solid
+- Xây dựng các tính năng theo kiến trúc module
+- Cố gắng tách biệt logic và UI, sử dụng EventBus

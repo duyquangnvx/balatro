@@ -1,0 +1,201 @@
+import { ICard, Suit, Rank } from './types';
+import { Scene, GameObjects } from 'phaser';
+import { AssetManager } from '../managers/AssetManager';
+import { DeckStyle } from './DeckStyle';
+
+export class Card implements ICard {
+    private sprite: GameObjects.Sprite;
+    private border: GameObjects.Graphics;
+    private shakeAnimation: Phaser.Tweens.Tween | null = null;
+    public suit: Suit;
+    public rank: Rank;
+    public value: number;
+    public isVisible: boolean;
+    private deckStyle: DeckStyle;
+    private isSelected: boolean = false;
+
+    constructor(scene: Scene, x: number, y: number, suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
+        this.suit = suit;
+        this.rank = rank;
+        this.isVisible = false;
+        this.deckStyle = deckStyle;
+        this.value = this.calculateValue();
+        
+        // Initialize card sprite with back texture initially (using DECK atlas)
+        this.sprite = scene.add.sprite(x, y, AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        
+        // Create border graphics (initially invisible)
+        this.border = scene.add.graphics();
+        this.updateBorder();
+        
+        this.sprite.setInteractive();
+        this.setupInteractions(scene);
+        this.flip(false); // Start face down
+    }
+
+    private setupInteractions(scene: Scene): void {
+        // Setup hover effect (single shake)
+        this.sprite.on('pointerover', () => {
+            this.singleShake(scene);
+        });
+    }
+
+    private singleShake(scene: Scene): void {
+        // Stop any existing shake animation
+        this.stopShake();
+        
+        // Store original position
+        const originalX = this.sprite.x;
+        
+        // Create a single shake animation sequence
+        this.shakeAnimation = scene.tweens.add({
+            targets: this.sprite,
+            x: [
+                originalX - 2, // Slightly left
+                originalX + 2, // Slightly right
+                originalX - 1, // Less left
+                originalX + 1, // Less right
+                originalX      // Back to center
+            ],
+            duration: 300,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                this.stopShake();
+            }
+        });
+    }
+
+    private stopShake(): void {
+        if (this.shakeAnimation) {
+            this.shakeAnimation.stop();
+            this.shakeAnimation = null;
+        }
+    }
+
+    private calculateValue(): number {
+        switch (this.rank) {
+            case Rank.ACE:
+                return 11; // Ace is worth 11 points
+            case Rank.JACK:
+            case Rank.QUEEN:
+            case Rank.KING:
+                return 10; // Face cards are worth 10 points
+            default:
+                return parseInt(this.rank) || 0; // Number cards worth their face value
+        }
+    }
+
+    /**
+     * Get the appropriate texture key based on card state
+     * - CARDS atlas for face-up cards
+     * - DECK atlas for face-down cards
+     */
+    private getTextureKey(): string {
+        // Use CARDS atlas for face-up cards, DECK atlas for face-down cards
+        return this.isVisible ? AssetManager.ATLAS.CARDS : AssetManager.ATLAS.DECK;
+    }
+
+    /**
+     * Get the appropriate frame name based on card state
+     */
+    private getFrameName(): string {
+        return this.isVisible ? this.getFaceCardFrame() : this.getCardBackFrame();
+    }
+
+    /**
+     * Get the frame name for the face-up card (from CARDS atlas)
+     * @returns The frame name for the face-up card
+     */
+    private getFaceCardFrame(): string {
+        return `${this.suit}_${this.rank}.png`;
+    }
+
+    /**
+     * Get the frame name for the card back (from DECK atlas)
+     * @returns The frame name for the card back
+     */
+    private getCardBackFrame(): string {
+        return `${this.deckStyle}.png`;
+    }
+
+    /**
+     * Set the deck style for this card
+     * @param style The new deck style
+     */
+    public setDeckStyle(style: DeckStyle): void {
+        this.deckStyle = style;
+        // Update the texture if the card is face down
+        if (!this.isVisible) {
+            // Use DECK atlas for card backs
+            this.sprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        }
+    }
+
+    /**
+     * Get the current deck style
+     */
+    public getDeckStyle(): DeckStyle {
+        return this.deckStyle;
+    }
+
+    /**
+     * Flip the card face up or face down
+     * @param faceUp Whether the card should be face up
+     */
+    public flip(faceUp: boolean = true): void {
+        this.isVisible = faceUp;
+        // Switch between CARDS and DECK atlas based on face up/down state
+        this.sprite.setTexture(this.getTextureKey(), this.getFrameName());
+    }
+
+    /**
+     * Set the card as selected or not
+     * @param selected Whether the card is selected
+     */
+    public setSelected(selected: boolean): void {
+        this.isSelected = selected;
+        this.updateBorder();
+    }
+
+    /**
+     * Check if the card is selected
+     */
+    public isCardSelected(): boolean {
+        return this.isSelected;
+    }
+
+    /**
+     * Update the border based on selection state
+     */
+    private updateBorder(): void {
+        this.border.clear();
+        
+        if (this.isSelected) {
+            // Draw a yellow border around the card
+            this.border.lineStyle(3, 0xffff00, 1);
+            const width = this.sprite.width;
+            const height = this.sprite.height;
+            this.border.strokeRect(
+                this.sprite.x - width / 2 - 2,
+                this.sprite.y - height / 2 - 2,
+                width + 4,
+                height + 4
+            );
+        }
+    }
+
+    public setPosition(x: number, y: number): void {
+        this.sprite.setPosition(x, y);
+        this.updateBorder(); // Update border position when card moves
+    }
+
+    public getSprite(): GameObjects.Sprite {
+        return this.sprite;
+    }
+
+    public destroy(): void {
+        this.stopShake();
+        this.border.destroy();
+        this.sprite.destroy();
+    }
+} 
