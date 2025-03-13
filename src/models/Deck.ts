@@ -60,6 +60,9 @@ export class Deck {
                     this.currentStyle
                 );
                 
+                // Cards in deck should not be selectable
+                card.setSelectable(false);
+                
                 this.scene.add.existing(card); // Add to scene immediately
                 card.setDepth(cardIndex); // Set depth based on card index for stacking
                 this.cards.push(card);
@@ -120,6 +123,9 @@ export class Deck {
             // Reset rotation when drawing
             card.setRotation(0);
             
+            // Make card selectable when drawn
+            card.setSelectable(true);
+            
             // Set a higher depth for drawn cards
             card.setDepth(10);
             this.discardedCards++; // Increment discarded count when card is drawn
@@ -150,6 +156,9 @@ export class Deck {
         // Reset rotation and position
         card.setRotation(0);
         card.setPosition(this.deckX, this.deckY);
+        
+        // Cards in deck should not be selectable
+        card.setSelectable(false);
         
         // Add card back to deck
         this.cards.push(card);

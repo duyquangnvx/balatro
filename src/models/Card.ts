@@ -11,6 +11,7 @@ export class Card extends GameObjects.Container {
     private enhancementSprite: GameObjects.Sprite;
     private border: GameObjects.Graphics;
     private shakeAnimation?: Phaser.Tweens.Tween;
+    private zoomAnimation?: Phaser.Tweens.Tween;
     public suit: Suit;
     public rank: Rank;
     public value: number;
@@ -20,6 +21,7 @@ export class Card extends GameObjects.Container {
     private eventBus: EventBus;
     private initialized: boolean = false;
     private enhancement: Enhancement = Enhancement.NORMAL;
+    private selectable: boolean = true;
 
     constructor(scene: Scene, x: number, y: number, suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
         super(scene, 0, 0); // Initialize at 0,0 first
@@ -70,13 +72,66 @@ export class Card extends GameObjects.Container {
         });
         
         // Add event listeners
-        this.on('pointerover', this.singleShake, this);
+        this.on('pointerover', this.onPointerOver, this);
+        this.on('pointerout', this.onPointerOut, this);
         this.on('pointerdown', this.onClick, this);
         this.flip(false); // Start face down
 
         // Now that everything is initialized, set the position
         this.initialized = true;
         this.setPosition(x, y);
+    }
+
+    /**
+     * Handle pointer over event - apply shake and zoom effects
+     */
+    private onPointerOver(): void {
+        // Always apply hover effects
+        this.singleShake();
+        this.startZoom();
+    }
+
+    /**
+     * Handle pointer out event - reset zoom
+     */
+    private onPointerOut(): void {
+        this.stopZoom();
+    }
+
+    /**
+     * Start zoom effect
+     */
+    private startZoom(): void {
+        // Stop any existing zoom animation
+        this.stopZoom();
+
+        // Create a new zoom animation
+        this.zoomAnimation = this.scene.tweens.add({
+            targets: this,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            duration: 100,
+            ease: 'Power1'
+        });
+    }
+
+    /**
+     * Stop zoom effect
+     */
+    private stopZoom(): void {
+        if (this.zoomAnimation) {
+            this.zoomAnimation.stop();
+            this.zoomAnimation = undefined;
+        }
+        
+        // Reset scale
+        this.scene.tweens.add({
+            targets: this,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 100,
+            ease: 'Power1'
+        });
     }
 
     private singleShake(): void {
@@ -96,6 +151,9 @@ export class Card extends GameObjects.Container {
         });
     }
 
+    /**
+     * Stop shake effect
+     */
     private stopShake(): void {
         if (this.shakeAnimation) {
             this.shakeAnimation.stop();
@@ -254,6 +312,7 @@ export class Card extends GameObjects.Container {
 
     public destroy(): void {
         this.stopShake();
+        this.stopZoom();
         this.border.destroy();
         this.faceSprite.destroy();
         this.backSprite.destroy();
@@ -261,6 +320,29 @@ export class Card extends GameObjects.Container {
     }
 
     private onClick(): void {
-        this.setSelected(!this.selected);
+        // Only allow selection if the card is selectable
+        if (this.selectable) {
+            this.setSelected(!this.selected);
+        }
+    }
+
+    /**
+     * Set whether this card can be selected
+     * @param selectable Whether this card can be selected
+     */
+    public setSelectable(selectable: boolean): void {
+        this.selectable = selectable;
+        
+        // If card is not selectable, ensure it's not selected
+        if (!selectable && this.selected) {
+            this.setSelected(false);
+        }
+    }
+
+    /**
+     * Check if this card can be selected
+     */
+    public isSelectable(): boolean {
+        return this.selectable;
     }
 } 
