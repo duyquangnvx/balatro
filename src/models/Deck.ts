@@ -45,8 +45,11 @@ export class Deck {
         this.cards = [];
         
         // Create all 52 cards
-        Object.values(Suit).forEach(suit => {
-            Object.values(Rank).forEach(rank => {
+        Object.values(Suit).forEach((suit, suitIndex) => {
+            Object.values(Rank).forEach((rank, rankIndex) => {
+                // Calculate card index
+                const cardIndex = suitIndex * Object.values(Rank).length + rankIndex;
+                
                 // Create card at deck position
                 const card = new Card(
                     this.scene,
@@ -56,17 +59,53 @@ export class Deck {
                     rank,
                     this.currentStyle
                 );
+                
                 this.scene.add.existing(card); // Add to scene immediately
-                card.setDepth(0); // Set initial depth
+                card.setDepth(cardIndex); // Set depth based on card index for stacking
                 this.cards.push(card);
             });
         });
+        
+        // Apply 3D effect to top 10 cards after shuffling
+        this.applyDeck3DEffect();
     }
 
     private shuffle(): void {
         for (let i = this.cards.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+        }
+        
+        // Re-apply 3D effect after shuffling
+        this.applyDeck3DEffect();
+    }
+    
+    /**
+     * Apply 3D effect to the top 10 cards of the deck
+     */
+    private applyDeck3DEffect(): void {
+        // Only apply effect to the last 10 cards (top of the deck)
+        const startIndex = Math.max(0, this.cards.length - 15);
+        
+        for (let i = startIndex; i < this.cards.length; i++) {
+            // Calculate how far this card is from the bottom of the visible stack (0-9)
+            const stackPosition = i - startIndex;
+            
+            // Calculate offset based on position in the stack
+            // Higher cards (higher stackPosition) get more offset
+            const offsetX = stackPosition * 0.5; // 0 to 4.5 pixels right
+            const offsetY = -stackPosition * 0.5; // 0 to -4.5 pixels up
+            
+            // Calculate rotation based on position in the stack
+            // Higher cards get more rotation
+            const rotation = stackPosition * 0.2 * (Math.PI / 180); // 0 to 1.8 degrees
+            
+            // Apply position and rotation
+            this.cards[i].setPosition(this.deckX + offsetX, this.deckY + offsetY);
+            this.cards[i].setRotation(rotation);
+            
+            // Ensure proper depth
+            this.cards[i].setDepth(i);
         }
     }
 
@@ -78,10 +117,17 @@ export class Deck {
         
         const card = this.cards.pop();
         if (card) {
+            // Reset rotation when drawing
+            card.setRotation(0);
+            
             // Set a higher depth for drawn cards
             card.setDepth(10);
             this.discardedCards++; // Increment discarded count when card is drawn
         }
+        
+        // Re-apply 3D effect to the remaining cards
+        this.applyDeck3DEffect();
+        
         this.updateDeckCount();
         return card;
     }
@@ -101,17 +147,16 @@ export class Deck {
         // Flip card face down
         card.flip(false);
         
-        // Move card back to deck position
-        card.setPosition(
-            this.deckX,  // Deck position X
-            this.deckY   // Deck position Y
-        );
-        
-        // Reset depth to be at the bottom
-        card.setDepth(0);
+        // Reset rotation and position
+        card.setRotation(0);
+        card.setPosition(this.deckX, this.deckY);
         
         // Add card back to deck
         this.cards.push(card);
+        
+        // Re-apply 3D effect to update the deck appearance
+        this.applyDeck3DEffect();
+        
         this.updateDeckCount();
     }
 
