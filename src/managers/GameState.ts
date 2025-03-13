@@ -1,26 +1,23 @@
 import { Scene } from 'phaser';
-import { Deck } from '../models/Deck';
-import { Hand } from '../models/Hand';
 import { DeckStyle } from '../models/DeckStyle';
-import { Card } from '../models/Card';
+import { CardModel } from '../models/CardModel';
+import { GameController } from '../controllers/GameController';
 
 /**
  * GameState - Manages the overall game state
  */
 export class GameState {
     private scene: Scene;
-    private deck: Deck;
-    private playerHand: Hand;
+    private gameController: GameController;
     private currentDeckStyle: DeckStyle;
     
     constructor(scene: Scene) {
         this.scene = scene;
         this.currentDeckStyle = DeckStyle.RED; // Default style
         
-        // Initialize game components
-        this.deck = new Deck(scene);
-        this.deck.setDeckStyle(this.currentDeckStyle);
-        this.playerHand = new Hand(scene, this.deck);
+        // Initialize game controller
+        this.gameController = new GameController(scene);
+        this.gameController.setDeckStyle(this.currentDeckStyle);
     }
     
     /**
@@ -38,37 +35,29 @@ export class GameState {
         this.currentDeckStyle = style;
         
         // Update all cards to use the new style
-        if (this.deck) {
-            this.deck.setDeckStyle(this.currentDeckStyle);
+        if (this.gameController) {
+            this.gameController.setDeckStyle(this.currentDeckStyle);
         }
     }
     
     /**
-     * Get the player's hand
+     * Get the game controller
      */
-    public getPlayerHand(): Hand {
-        return this.playerHand;
-    }
-    
-    /**
-     * Get the deck
-     */
-    public getDeck(): Deck {
-        return this.deck;
+    public getGameController(): GameController {
+        return this.gameController;
     }
     
     /**
      * Get the selected cards from the player's hand
      */
-    public getSelectedCards(): Card[] {
-        return this.playerHand.getSelectedCards();
+    public getSelectedCards(): CardModel[] {
+        return this.gameController.getSelectedCards();
     }
     
     /**
      * Clean up resources
      */
     public destroy(): void {
-        this.deck.destroy();
-        this.playerHand.destroy();
+        this.gameController.destroy();
     }
 } 

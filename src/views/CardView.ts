@@ -1,36 +1,32 @@
-import { ICard, Suit, Rank, Enhancement } from './types';
 import { Scene, GameObjects } from 'phaser';
+import { CardModel } from '../models/CardModel';
 import { AssetManager } from '../managers/AssetManager';
-import { DeckStyle } from './DeckStyle';
 import EventBus from '../base/EventBus';
 import { GameEvents } from '../data/GameEvents';
 
-export class Card extends GameObjects.Container {
+export class CardView extends GameObjects.Container {
+    private model: CardModel;
     private faceSprite: GameObjects.Sprite;
     private backSprite: GameObjects.Sprite;
     private enhancementSprite: GameObjects.Sprite;
     private border: GameObjects.Graphics;
     private shakeAnimation?: Phaser.Tweens.Tween;
     private zoomAnimation?: Phaser.Tweens.Tween;
-    public suit: Suit;
-    public rank: Rank;
-    public value: number;
-    public isVisible: boolean;
-    private deckStyle: DeckStyle;
-    private selected: boolean = false;
-    private eventBus: EventBus;
     private initialized: boolean = false;
-    private enhancement: Enhancement = Enhancement.NORMAL;
-    private selectable: boolean = true;
+    private eventBus: EventBus;
+    
+    // Store bound listener functions so we can remove them later
+    private boundListeners: {
+        onCardFlipped: (card: CardModel) => void;
+        onCardSelected: (card: CardModel) => void;
+        onCardDeselected: (card: CardModel) => void;
+        onCardEnhanced: (card: CardModel) => void;
+    };
 
-    constructor(scene: Scene, x: number, y: number, suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
+    constructor(scene: Scene, x: number, y: number, model: CardModel) {
         super(scene, 0, 0); // Initialize at 0,0 first
+        this.model = model;
         this.eventBus = EventBus.getInstance();
-        this.suit = suit;
-        this.rank = rank;
-        this.isVisible = false;
-        this.deckStyle = deckStyle;
-        this.value = this.calculateValue();
         
         // Initialize enhancement sprite first (below the card face)
         this.enhancementSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
@@ -71,15 +67,66 @@ export class Card extends GameObjects.Container {
             useHandCursor: true // Add hand cursor on hover
         });
         
+        // Create bound listener functions
+        this.boundListeners = {
+            onCardFlipped: (card: CardModel) => {
+                if (card === this.model) {
+                    this.updateView();
+                }
+            },
+            onCardSelected: (card: CardModel) => {
+                if (card === this.model) {
+                    this.updateBorder();
+                }
+            },
+            onCardDeselected: (card: CardModel) => {
+                if (card === this.model) {
+                    this.updateBorder();
+                }
+            },
+            onCardEnhanced: (card: CardModel) => {
+                if (card === this.model) {
+                    this.updateEnhancement();
+                }
+            }
+        };
+        
         // Add event listeners
         this.on('pointerover', this.onPointerOver, this);
         this.on('pointerout', this.onPointerOut, this);
         this.on('pointerdown', this.onClick, this);
-        this.flip(false); // Start face down
-
+        
+        // Subscribe to model events
+        this.setupModelListeners();
+        
+        // Update view based on initial model state
+        this.updateView();
+        
         // Now that everything is initialized, set the position
         this.initialized = true;
         this.setPosition(x, y);
+    }
+    
+    private setupModelListeners(): void {
+        // Listen for model events using the bound listeners
+        this.eventBus.on(GameEvents.CARD_FLIPPED, this.boundListeners.onCardFlipped);
+        this.eventBus.on(GameEvents.CARD_SELECTED, this.boundListeners.onCardSelected);
+        this.eventBus.on(GameEvents.CARD_DESELECTED, this.boundListeners.onCardDeselected);
+        this.eventBus.on(GameEvents.CARD_ENHANCED, this.boundListeners.onCardEnhanced);
+    }
+    
+    private updateView(): void {
+        // Update visibility based on model state
+        this.faceSprite.setVisible(this.model.isVisible);
+        this.backSprite.setVisible(!this.model.isVisible);
+        this.enhancementSprite.setVisible(this.model.isVisible);
+        
+        // Update border
+        this.updateBorder();
+    }
+    
+    private updateEnhancement(): void {
+        this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
     }
 
     /**
@@ -161,25 +208,12 @@ export class Card extends GameObjects.Container {
         }
     }
 
-    private calculateValue(): number {
-        switch (this.rank) {
-            case Rank.ACE:
-                return 11; // Ace is worth 11 points
-            case Rank.JACK:
-            case Rank.QUEEN:
-            case Rank.KING:
-                return 10; // Face cards are worth 10 points
-            default:
-                return parseInt(this.rank) || 0; // Number cards worth their face value
-        }
-    }
-
     /**
      * Get the frame name for the face-up card (from CARDS atlas)
      * @returns The frame name for the face-up card
      */
     private getFaceCardFrame(): string {
-        return `${this.suit}_${this.rank}.png`;
+        return `${this.model.suit}_${this.model.rank}.png`;
     }
 
     /**
@@ -187,91 +221,14 @@ export class Card extends GameObjects.Container {
      * @returns The frame name for the card back
      */
     private getCardBackFrame(): string {
-        return `${this.deckStyle}.png`;
+        return `${this.model.getDeckStyle()}.png`;
     }
 
     /**
      * Get the frame name for the enhancement sprite
      */
     private getEnhancementFrame(): string {
-        return `${this.enhancement}.png`;
-    }
-
-    /**
-     * Set the deck style for this card
-     * @param style The new deck style
-     */
-    public setDeckStyle(style: DeckStyle): void {
-        this.deckStyle = style;
-        // Update the back texture
-        this.backSprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
-    }
-
-    /**
-     * Get the current deck style
-     */
-    public getDeckStyle(): DeckStyle {
-        return this.deckStyle;
-    }
-
-    /**
-     * Set the enhancement type for this card
-     * @param enhancement The new enhancement type
-     */
-    public setEnhancement(enhancement: Enhancement): void {
-        this.enhancement = enhancement;
-        this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
-        
-        // Only show enhancement when card is face up
-        this.enhancementSprite.setVisible(this.isVisible);
-        
-        // Emit event for enhancement change
-        this.eventBus.emit(GameEvents.CARD_ENHANCED, this, enhancement);
-    }
-
-    /**
-     * Get the current enhancement type
-     */
-    public getEnhancement(): Enhancement {
-        return this.enhancement;
-    }
-
-    /**
-     * Flip the card face up or face down
-     * @param faceUp Whether the card should be face up
-     */
-    public flip(faceUp: boolean = true): void {
-        this.isVisible = faceUp;
-        
-        // Show/hide appropriate sprites
-        this.faceSprite.setVisible(faceUp);
-        this.backSprite.setVisible(!faceUp);
-        
-        // Show/hide enhancement sprite based on card face
-        this.enhancementSprite.setVisible(faceUp);
-    }
-
-    /**
-     * Set the card as selected or not
-     * @param selected Whether the card is selected
-     */
-    public setSelected(selected: boolean): void {
-        this.selected = selected;
-        this.updateBorder();
-        
-        // Emit event through EventBus
-        if (selected) {
-            this.eventBus.emit(GameEvents.CARD_SELECTED, this);
-        } else {
-            this.eventBus.emit(GameEvents.CARD_DESELECTED, this);
-        }
-    }
-
-    /**
-     * Check if the card is selected
-     */
-    public isCardSelected(): boolean {
-        return this.selected;
+        return `${this.model.getEnhancement()}.png`;
     }
 
     /**
@@ -282,7 +239,7 @@ export class Card extends GameObjects.Container {
         
         this.border.clear();
         
-        if (this.selected) {
+        if (this.model.isCardSelected()) {
             // Draw a yellow border around the card
             this.border.lineStyle(3, 0xffff00, 1);
             const width = this.faceSprite.width;
@@ -307,42 +264,37 @@ export class Card extends GameObjects.Container {
     }
 
     public getSprite(): GameObjects.Sprite {
-        return this.isVisible ? this.faceSprite : this.backSprite;
+        return this.model.isVisible ? this.faceSprite : this.backSprite;
     }
 
-    public destroy(): void {
-        this.stopShake();
-        this.stopZoom();
-        this.border.destroy();
-        this.faceSprite.destroy();
-        this.backSprite.destroy();
-        this.enhancementSprite.destroy();
+    public getModel(): CardModel {
+        return this.model;
     }
 
     private onClick(): void {
         // Only allow selection if the card is selectable
-        if (this.selectable) {
-            this.setSelected(!this.selected);
+        if (this.model.isSelectable()) {
+            this.model.setSelected(!this.model.isCardSelected());
         }
     }
 
-    /**
-     * Set whether this card can be selected
-     * @param selectable Whether this card can be selected
-     */
-    public setSelectable(selectable: boolean): void {
-        this.selectable = selectable;
+    public destroy(): void {
+        // Clean up event listeners using the bound listeners
+        this.eventBus.off(GameEvents.CARD_FLIPPED, this.boundListeners.onCardFlipped);
+        this.eventBus.off(GameEvents.CARD_SELECTED, this.boundListeners.onCardSelected);
+        this.eventBus.off(GameEvents.CARD_DESELECTED, this.boundListeners.onCardDeselected);
+        this.eventBus.off(GameEvents.CARD_ENHANCED, this.boundListeners.onCardEnhanced);
         
-        // If card is not selectable, ensure it's not selected
-        if (!selectable && this.selected) {
-            this.setSelected(false);
-        }
-    }
-
-    /**
-     * Check if this card can be selected
-     */
-    public isSelectable(): boolean {
-        return this.selectable;
+        // Clean up animations
+        this.stopShake();
+        this.stopZoom();
+        
+        // Destroy sprites
+        this.border.destroy();
+        this.faceSprite.destroy();
+        this.backSprite.destroy();
+        this.enhancementSprite.destroy();
+        
+        super.destroy();
     }
 } 

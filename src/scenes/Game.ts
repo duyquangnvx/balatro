@@ -3,15 +3,19 @@ import { SceneKeys } from './SceneKeys';
 import { GameState } from '../managers/GameState';
 import { DeckStyle } from '../models/DeckStyle';
 import { Enhancement } from '../models/types';
-import { Card } from '../models/Card';
+import { CardModel } from '../models/CardModel';
+import EventBus from '../base/EventBus';
+import { GameEvents } from '../data/GameEvents';
 
 export class Game extends Scene
 {
     private gameState!: GameState;
+    private eventBus: EventBus;
 
     constructor ()
     {
         super({ key: SceneKeys.GAME });
+        this.eventBus = EventBus.getInstance();
     }
 
     preload ()
@@ -66,6 +70,67 @@ export class Game extends Scene
         enhancementButton.on('pointerdown', () => {
             this.cycleEnhancement();
         });
+        
+        // Add draw card button
+        const drawButton = this.add.text(
+            20, 
+            100, 
+            'Draw Card', 
+            { 
+                fontSize: '18px', 
+                color: '#ffffff',
+                backgroundColor: '#009900',
+                padding: { x: 10, y: 5 }
+            }
+        ).setInteractive();
+        
+        // Draw a card on click
+        drawButton.on('pointerdown', () => {
+            this.eventBus.emit(GameEvents.UI_BUTTON_CLICKED, 'drawCard');
+        });
+        
+        // Add debug button
+        const debugButton = this.add.text(
+            20, 
+            140, 
+            'Debug EventBus', 
+            { 
+                fontSize: '18px', 
+                color: '#ffffff',
+                backgroundColor: '#990099',
+                padding: { x: 10, y: 5 }
+            }
+        ).setInteractive();
+        
+        // Debug EventBus on click
+        debugButton.on('pointerdown', () => {
+            this.debugEventBus();
+        });
+
+        // Add debug button for HandView
+        const handDebugButton = this.add.text(
+            20, 
+            180, 
+            'Debug Hand', 
+            { 
+                fontSize: '18px', 
+                color: '#ffffff',
+                backgroundColor: '#660066',
+                padding: { x: 10, y: 5 }
+            }
+        ).setInteractive();
+        
+        // Debug HandView on click
+        handDebugButton.on('pointerdown', () => {
+            this.debugHandView();
+        });
+    }
+    
+    /**
+     * Debug EventBus listener counts
+     */
+    private debugEventBus(): void {
+        this.eventBus.debugAllListeners();
     }
 
     /**
@@ -98,10 +163,15 @@ export class Game extends Scene
         const nextIndex = (currentIndex + 1) % enhancements.length;
         const nextEnhancement = enhancements[nextIndex];
         
-        // Apply the new enhancement to all selected cards
-        selectedCards.forEach((card: Card) => {
-            card.setEnhancement(nextEnhancement);
-        });
+        // Apply the new enhancement to all selected cards using GameController
+        this.gameState.getGameController().setEnhancementForSelectedCards(nextEnhancement);
+    }
+
+    /**
+     * Debug HandView
+     */
+    private debugHandView(): void {
+        this.gameState.getGameController().getHandController().getView().debugCardViews();
     }
 
     destroy(): void {

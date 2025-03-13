@@ -161,3 +161,130 @@ Created by [Phaser Studio](mailto:support@phaser.io). Powered by coffee, anime, 
 The Phaser logo and characters are &copy; 2011 - 2024 Phaser Studio Inc.
 
 All rights reserved.
+
+# Balatro Card Game
+
+Một game bài dựa trên luật Poker được xây dựng bằng PhaserJS, tuân thủ nguyên tắc SOLID và kiến trúc MVC.
+
+## Kiến trúc MVC
+
+Dự án này được tổ chức theo mô hình MVC (Model-View-Controller) để tách biệt logic và UI:
+
+### Models
+
+- `Card`: Đại diện cho một lá bài với suit, rank, và các thuộc tính khác.
+- `DeckModel`: Quản lý bộ bài, bao gồm rút bài, trả bài, và xáo bài.
+- `HandModel`: Quản lý bài trên tay người chơi, bao gồm thêm/xóa bài và sắp xếp.
+
+### Views
+
+- `CardView`: Hiển thị một lá bài trên màn hình với các hiệu ứng như lật bài, rung, và zoom.
+- `DeckView`: Hiển thị bộ bài trên màn hình với hiệu ứng 3D và số lượng bài còn lại.
+- `HandView`: Hiển thị bài trên tay người chơi và các nút điều khiển.
+
+### Controllers
+
+- `CardController`: Kết nối `Card` và `CardView`, xử lý tương tác với lá bài.
+- `DeckController`: Kết nối `DeckModel` và `DeckView`, xử lý các thao tác với bộ bài.
+- `HandController`: Kết nối `HandModel` và `HandView`, xử lý các thao tác với bài trên tay.
+- `GameController`: Quản lý tất cả các controller khác, điều phối luồng game.
+
+## Cách sử dụng các Controller
+
+### 1. Khởi tạo GameController
+
+GameController là controller chính, quản lý tất cả các controller khác. Nó được khởi tạo trong GameState:
+
+```typescript
+// Trong GameState
+constructor(scene: Scene) {
+    this.scene = scene;
+    this.currentDeckStyle = DeckStyle.RED; // Default style
+    
+    // Initialize game controller
+    this.gameController = new GameController(scene);
+    this.gameController.setDeckStyle(this.currentDeckStyle);
+}
+```
+
+### 2. Truy cập các Controller con
+
+Từ GameController, bạn có thể truy cập các controller con:
+
+```typescript
+// Lấy DeckController
+const deckController = gameController.getDeckController();
+
+// Lấy HandController
+const handController = gameController.getHandController();
+```
+
+### 3. Thực hiện các thao tác game
+
+Các thao tác game được thực hiện thông qua các controller:
+
+```typescript
+// Rút một lá bài từ bộ bài
+handController.drawCardFromDeck();
+
+// Sắp xếp bài theo rank
+handController.sortByRank();
+
+// Sắp xếp bài theo suit
+handController.sortBySuit();
+
+// Bỏ các lá bài đã chọn và rút lá mới
+handController.discardAndDraw();
+```
+
+### 4. Xử lý sự kiện
+
+Các sự kiện được xử lý thông qua EventBus:
+
+```typescript
+// Đăng ký lắng nghe sự kiện
+eventBus.on(GameEvents.CARD_SELECTED, (card) => {
+    // Xử lý khi một lá bài được chọn
+});
+
+// Phát sự kiện
+eventBus.emit(GameEvents.UI_BUTTON_CLICKED, 'drawCard');
+```
+
+## Ví dụ
+
+Dưới đây là một ví dụ về cách sử dụng các controller trong scene:
+
+```typescript
+// Trong Game.ts
+create() {
+    // Khởi tạo GameState
+    this.gameState = new GameState(this);
+    
+    // Thêm nút rút bài
+    const drawButton = this.add.text(
+        20, 
+        100, 
+        'Draw Card', 
+        { 
+            fontSize: '18px', 
+            color: '#ffffff',
+            backgroundColor: '#009900',
+            padding: { x: 10, y: 5 }
+        }
+    ).setInteractive();
+    
+    // Rút bài khi nhấn nút
+    drawButton.on('pointerdown', () => {
+        this.eventBus.emit(GameEvents.UI_BUTTON_CLICKED, 'drawCard');
+    });
+}
+```
+
+## Lợi ích của kiến trúc MVC
+
+1. **Tách biệt logic và UI**: Models chứa dữ liệu và logic, Views hiển thị UI, Controllers kết nối chúng.
+2. **Dễ bảo trì**: Mỗi thành phần có trách nhiệm riêng, dễ dàng sửa đổi mà không ảnh hưởng đến các thành phần khác.
+3. **Dễ mở rộng**: Thêm tính năng mới bằng cách thêm models, views, và controllers mới.
+4. **Dễ test**: Có thể test từng thành phần riêng biệt.
+5. **Tái sử dụng**: Các thành phần có thể được tái sử dụng trong các dự án khác.

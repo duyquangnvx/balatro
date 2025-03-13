@@ -4,6 +4,7 @@ export const GameEvents = {
     CARD_DESELECTED: 'card:deselected',
     CARD_FLIPPED: 'card:flipped',
     CARD_ENHANCED: 'card:enhanced',
+    CARD_RETURNED: 'card:returned',
 
     // Hand events
     HAND_UPDATED: 'hand:updated',
@@ -30,6 +31,12 @@ export const GameEvents = {
     UI_BUTTON_CLICKED: 'ui:buttonClicked',
     UI_DIALOG_OPENED: 'ui:dialogOpened',
     UI_DIALOG_CLOSED: 'ui:dialogClosed',
+    
+    // Animation events
+    ANIMATION_STARTED: 'animation:started',
+    ANIMATION_COMPLETED: 'animation:completed',
+    CARD_ANIMATION_STARTED: 'card:animationStarted',
+    CARD_ANIMATION_COMPLETED: 'card:animationCompleted',
 } as const;
 
 // Type for event names

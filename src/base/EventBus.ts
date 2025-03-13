@@ -6,7 +6,7 @@ class EventBus extends EventEmitter {
     private constructor() {
         super();
         // Increase max listeners to avoid memory leak warnings
-        this.setMaxListeners(50);
+        this.setMaxListeners(100);
     }
 
     public static getInstance(): EventBus {
@@ -58,6 +58,30 @@ class EventBus extends EventEmitter {
      */
     public removeAllListeners(event?: string): this {
         return super.removeAllListeners(event);
+    }
+    
+    /**
+     * Debug method to log the number of listeners for a specific event
+     * @param event Event name
+     */
+    public debugListenerCount(event: string): number {
+        const count = this.listenerCount(event);
+        console.log(`Event: ${event}, Listeners: ${count}`);
+        return count;
+    }
+    
+    /**
+     * Debug method to log all events and their listener counts
+     */
+    public debugAllListeners(): void {
+        const events = this.eventNames();
+        console.log('=== EventBus Listener Counts ===');
+        events.forEach(event => {
+            const eventName = event.toString();
+            const count = this.listenerCount(eventName);
+            console.log(`Event: ${eventName}, Listeners: ${count}`);
+        });
+        console.log('===============================');
     }
 }
 

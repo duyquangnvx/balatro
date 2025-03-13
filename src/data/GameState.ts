@@ -1,4 +1,4 @@
-import { Card } from '../models/Card';
+import { CardModel } from '../models/CardModel';
 
 export enum GamePhase {
     INITIALIZING = 'INITIALIZING',
@@ -11,7 +11,7 @@ export enum GamePhase {
 export interface PlayerState {
     score: number;
     handValue: number;
-    selectedCards: Card[];
+    selectedCards: CardModel[];
     lastAction?: string;
 }
 
