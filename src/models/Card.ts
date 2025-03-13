@@ -2,19 +2,25 @@ import { ICard, Suit, Rank } from './types';
 import { Scene, GameObjects } from 'phaser';
 import { AssetManager } from '../managers/AssetManager';
 import { DeckStyle } from './DeckStyle';
+import EventBus from '../base/EventBus';
+import { GameEvents } from '../data/GameEvents';
 
-export class Card implements ICard {
+export class Card extends GameObjects.Container {
     private sprite: GameObjects.Sprite;
     private border: GameObjects.Graphics;
-    private shakeAnimation: Phaser.Tweens.Tween | null = null;
+    private shakeAnimation?: Phaser.Tweens.Tween;
     public suit: Suit;
     public rank: Rank;
     public value: number;
     public isVisible: boolean;
     private deckStyle: DeckStyle;
-    private isSelected: boolean = false;
+    private selected: boolean = false;
+    private eventBus: EventBus;
+    private initialized: boolean = false;
 
     constructor(scene: Scene, x: number, y: number, suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
+        super(scene, 0, 0); // Initialize at 0,0 first
+        this.eventBus = EventBus.getInstance();
         this.suit = suit;
         this.rank = rank;
         this.isVisible = false;
@@ -22,43 +28,51 @@ export class Card implements ICard {
         this.value = this.calculateValue();
         
         // Initialize card sprite with back texture initially (using DECK atlas)
-        this.sprite = scene.add.sprite(x, y, AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        this.sprite = scene.add.sprite(0, 0, AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        this.add(this.sprite);
         
         // Create border graphics (initially invisible)
         this.border = scene.add.graphics();
-        this.updateBorder();
+        this.add(this.border);
         
-        this.sprite.setInteractive();
-        this.setupInteractions(scene);
-        this.flip(false); // Start face down
-    }
-
-    private setupInteractions(scene: Scene): void {
-        // Setup hover effect (single shake)
-        this.sprite.on('pointerover', () => {
-            this.singleShake(scene);
+        // Set the size of the container based on the sprite dimensions
+        const width = this.sprite.width;
+        const height = this.sprite.height;
+        this.setSize(width, height);
+        
+        // Make the entire container interactive with a properly centered hitArea
+        this.setInteractive({
+            hitArea: new Phaser.Geom.Rectangle(
+                0,
+                0,
+                width,
+                height
+            ),
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+            useHandCursor: true // Add hand cursor on hover
         });
+        
+        // Add event listeners
+        this.on('pointerover', this.singleShake, this);
+        this.on('pointerdown', this.onClick, this);
+        this.flip(false); // Start face down
+
+        // Now that everything is initialized, set the position
+        this.initialized = true;
+        this.setPosition(x, y);
     }
 
-    private singleShake(scene: Scene): void {
+    private singleShake(): void {
         // Stop any existing shake animation
         this.stopShake();
-        
-        // Store original position
-        const originalX = this.sprite.x;
-        
-        // Create a single shake animation sequence
-        this.shakeAnimation = scene.tweens.add({
-            targets: this.sprite,
-            x: [
-                originalX - 2, // Slightly left
-                originalX + 2, // Slightly right
-                originalX - 1, // Less left
-                originalX + 1, // Less right
-                originalX      // Back to center
-            ],
-            duration: 300,
-            ease: 'Sine.easeInOut',
+
+        // Create a new shake animation
+        this.shakeAnimation = this.scene.tweens.add({
+            targets: this,
+            x: this.x - 5,
+            duration: 50,
+            yoyo: true,
+            repeat: 1,
             onComplete: () => {
                 this.stopShake();
             }
@@ -68,7 +82,7 @@ export class Card implements ICard {
     private stopShake(): void {
         if (this.shakeAnimation) {
             this.shakeAnimation.stop();
-            this.shakeAnimation = null;
+            this.shakeAnimation = undefined;
         }
     }
 
@@ -153,40 +167,54 @@ export class Card implements ICard {
      * @param selected Whether the card is selected
      */
     public setSelected(selected: boolean): void {
-        this.isSelected = selected;
+        this.selected = selected;
         this.updateBorder();
+        
+        // Emit event through EventBus
+        if (selected) {
+            this.eventBus.emit(GameEvents.CARD_SELECTED, this);
+        } else {
+            this.eventBus.emit(GameEvents.CARD_DESELECTED, this);
+        }
     }
 
     /**
      * Check if the card is selected
      */
     public isCardSelected(): boolean {
-        return this.isSelected;
+        return this.selected;
     }
 
     /**
      * Update the border based on selection state
      */
     private updateBorder(): void {
+        if (!this.initialized || !this.border) return;
+        
         this.border.clear();
         
-        if (this.isSelected) {
+        if (this.selected) {
             // Draw a yellow border around the card
             this.border.lineStyle(3, 0xffff00, 1);
             const width = this.sprite.width;
             const height = this.sprite.height;
+            // Draw border relative to container center
             this.border.strokeRect(
-                this.sprite.x - width / 2 - 2,
-                this.sprite.y - height / 2 - 2,
+                -width / 2 - 2,
+                -height / 2 - 2,
                 width + 4,
                 height + 4
             );
         }
     }
 
-    public setPosition(x: number, y: number): void {
-        this.sprite.setPosition(x, y);
-        this.updateBorder(); // Update border position when card moves
+    public setPosition(x: number, y: number): this {
+        super.setPosition(x, y);
+        // Only update border if initialization is complete
+        if (this.initialized) {
+            this.updateBorder();
+        }
+        return this;
     }
 
     public getSprite(): GameObjects.Sprite {
@@ -197,5 +225,9 @@ export class Card implements ICard {
         this.stopShake();
         this.border.destroy();
         this.sprite.destroy();
+    }
+
+    private onClick(): void {
+        this.setSelected(!this.selected);
     }
 } 

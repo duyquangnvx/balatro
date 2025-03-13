@@ -2,23 +2,45 @@ import { Scene } from 'phaser';
 import { Card } from './Card';
 import { Deck } from './Deck';
 import { Suit, Rank } from './types';
+import EventBus from '../base/EventBus';
+import { GameEvents } from '../data/GameEvents';
 
 export class Hand {
     private scene: Scene;
-    private cards: Card[];
+    private cards: Card[] = [];
     private deck: Deck;
-    private selectedCards: Set<Card>;
+    private selectedCards: Set<Card> = new Set();
     private readonly CARD_SPACING = 80;
     private readonly BOTTOM_MARGIN = 100;
     private readonly SELECTED_OFFSET = 20;
+    private eventBus: EventBus;
 
     constructor(scene: Scene, deck: Deck) {
         this.scene = scene;
         this.deck = deck;
-        this.cards = [];
-        this.selectedCards = new Set();
+        this.eventBus = EventBus.getInstance();
+        this.setupEventListeners();
         this.drawInitialHand();
         this.createButtons();
+    }
+
+    private setupEventListeners(): void {
+        this.eventBus.on(GameEvents.CARD_SELECTED, this.onCardSelected.bind(this));
+        this.eventBus.on(GameEvents.CARD_DESELECTED, this.onCardDeselected.bind(this));
+    }
+
+    private onCardSelected(card: Card): void {
+        if (this.cards.includes(card)) {
+            this.selectedCards.add(card);
+            this.arrangeCards(); // Rearrange cards when selection changes
+            this.eventBus.emit(GameEvents.HAND_UPDATED, this.getSelectedCards());
+        }
+    }
+
+    private onCardDeselected(card: Card): void {
+        this.selectedCards.delete(card);
+        this.arrangeCards(); // Rearrange cards when selection changes
+        this.eventBus.emit(GameEvents.HAND_UPDATED, this.getSelectedCards());
     }
 
     private createButtons(): void {
@@ -70,29 +92,19 @@ export class Hand {
         this.addCards(newCards);
     }
 
-    private addCards(newCards: Card[]): void {
-        this.cards.push(...newCards);
-        this.arrangeCards();
+    public addCards(cards: Card[]): void {
+        this.cards.push(...cards);
         
-        newCards.forEach(card => {
+        cards.forEach(card => {
+            // Add card to scene if it's not already added
+            if (!card.scene) {
+                this.scene.add.existing(card);
+            }
             card.flip(true);
-            card.getSprite().on('pointerdown', () => this.onCardClick(card));
-            // Hover effects are now handled by the Card class
         });
-    }
 
-    private arrangeCards(): void {
-        const totalWidth = (this.cards.length - 1) * this.CARD_SPACING;
-        const startX = (this.scene.cameras.main.width - totalWidth) / 2;
-        const baseY = this.scene.cameras.main.height - this.BOTTOM_MARGIN;
-
-        this.cards.forEach((card, index) => {
-            const y = baseY - (this.selectedCards.has(card) ? this.SELECTED_OFFSET : 0);
-            card.setPosition(
-                startX + (index * this.CARD_SPACING),
-                y
-            );
-        });
+        this.arrangeCards(); // Position the cards
+        this.eventBus.emit(GameEvents.HAND_UPDATED, this.cards);
     }
 
     private onCardClick(card: Card): void {
@@ -106,6 +118,25 @@ export class Hand {
             card.setSelected(true);
         }
         this.arrangeCards();
+    }
+
+    private arrangeCards(): void {
+        const totalWidth = (this.cards.length - 1) * this.CARD_SPACING;
+        const startX = (this.scene.cameras.main.width - totalWidth) / 2;
+        const baseY = this.scene.cameras.main.height - this.BOTTOM_MARGIN;
+
+        this.cards.forEach((card, index) => {
+            const x = startX + (index * this.CARD_SPACING);
+            const y = baseY - (this.selectedCards.has(card) ? this.SELECTED_OFFSET : 0);
+            
+            // Ensure card is added to the scene if it's not already
+            if (!card.scene) {
+                this.scene.add.existing(card);
+            }
+            
+            card.setPosition(x, y);
+            card.setDepth(index); // Ensure proper layering
+        });
     }
 
     private discardSelectedCards(): void {
@@ -156,12 +187,18 @@ export class Hand {
         this.arrangeCards();
     }
 
-    public getCards(): Card[] {
+    public getSelectedCards(): Card[] {
+        return Array.from(this.selectedCards);
+    }
+
+    public getAllCards(): Card[] {
         return [...this.cards];
     }
 
-    public getSelectedCards(): Card[] {
-        return Array.from(this.selectedCards);
+    public clearSelection(): void {
+        this.selectedCards.forEach(card => card.setSelected(false));
+        this.selectedCards.clear();
+        this.eventBus.emit(GameEvents.HAND_UPDATED, this.cards);
     }
 
     public destroy(): void {

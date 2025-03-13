@@ -39,7 +39,18 @@ export class Deck {
         // Create all 52 cards
         Object.values(Suit).forEach(suit => {
             Object.values(Rank).forEach(rank => {
-                this.cards.push(new Card(this.scene, -100, -100, suit, rank, this.currentStyle)); // Off-screen initially
+                // Create card at deck position
+                const card = new Card(
+                    this.scene,
+                    this.scene.cameras.main.width - 150,  // Deck position X
+                    50,                                   // Deck position Y
+                    suit,
+                    rank,
+                    this.currentStyle
+                );
+                this.scene.add.existing(card); // Add to scene immediately
+                card.setDepth(0); // Set initial depth
+                this.cards.push(card);
             });
         });
     }
