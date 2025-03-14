@@ -4,8 +4,8 @@ import { HandView } from '../views/HandView';
 import { CardModel } from '../models/CardModel';
 import { CardController } from './CardController';
 import { DeckController } from './DeckController';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 export class HandController {
     private model: HandModel;

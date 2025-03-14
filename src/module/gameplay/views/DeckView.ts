@@ -2,8 +2,8 @@ import { Scene, GameObjects } from 'phaser';
 import { DeckModel } from '../models/DeckModel';
 import { CardView } from './CardView';
 import { CardModel } from '../models/CardModel';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 export class DeckView {
     private scene: Scene;

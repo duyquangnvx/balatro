@@ -4,8 +4,8 @@ import { HandController } from './HandController';
 import { DeckStyle } from '../models/DeckStyle';
 import { CardModel } from '../models/CardModel';
 import { Enhancement } from '../models/types';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 /**
  * GameController - Quản lý tất cả các controller khác trong game

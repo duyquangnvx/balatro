@@ -1,7 +1,5 @@
 import { Scene } from 'phaser';
-import { DeckStyle } from '../models/DeckStyle';
-import { CardModel } from '../models/CardModel';
-import { GameController } from '../controllers/GameController';
+import { DeckStyle, CardModel, GameController } from '../module/gameplay';
 
 /**
  * GameState - Manages the overall game state

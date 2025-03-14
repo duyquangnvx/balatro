@@ -1,7 +1,7 @@
 import { Suit, Rank, Enhancement } from './types';
 import { DeckStyle } from './DeckStyle';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 export class CardModel {
     public suit: Suit;

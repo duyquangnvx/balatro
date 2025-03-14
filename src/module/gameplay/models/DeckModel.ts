@@ -1,8 +1,8 @@
 import { CardModel } from './CardModel';
 import { Suit, Rank } from './types';
 import { DeckStyle } from './DeckStyle';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 export class DeckModel {
     private cards: CardModel[] = [];

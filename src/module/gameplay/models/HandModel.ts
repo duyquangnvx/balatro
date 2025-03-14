@@ -1,7 +1,7 @@
 import { CardModel } from './CardModel';
 import { Suit, Rank } from './types';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 // Enum để theo dõi cách sắp xếp hiện tại
 export enum SortType {

@@ -166,6 +166,26 @@ All rights reserved.
 
 Một game bài dựa trên luật Poker được xây dựng bằng PhaserJS, tuân thủ nguyên tắc SOLID và kiến trúc MVC.
 
+## Kiến trúc Modular
+
+Dự án này được tổ chức theo kiến trúc modular để tách biệt các tính năng thành các module riêng biệt:
+
+```
+src/
+├── base/           # Các tiện ích cơ bản như EventBus
+├── data/           # Dữ liệu và hằng số game
+├── managers/       # Các manager của game
+├── module/         # Các module tính năng
+│   └── gameplay/   # Module gameplay
+│       ├── controllers/  # Các controller của game
+│       ├── models/       # Các model của game
+│       ├── views/        # Các view của game
+│       └── index.ts      # Export các thành phần của module
+├── scenes/         # Các scene của Phaser
+├── types/          # Các định nghĩa kiểu TypeScript
+└── main.ts         # Điểm vào của ứng dụng
+```
+
 ## Kiến trúc MVC
 
 Dự án này được tổ chức theo mô hình MVC (Model-View-Controller) để tách biệt logic và UI:

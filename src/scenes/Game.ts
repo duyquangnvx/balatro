@@ -1,9 +1,7 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from './SceneKeys';
 import { GameState } from '../managers/GameState';
-import { DeckStyle } from '../models/DeckStyle';
-import { Enhancement } from '../models/types';
-import { CardModel } from '../models/CardModel';
+import { DeckStyle, Enhancement, CardModel } from '../module/gameplay';
 import EventBus from '../base/EventBus';
 import { GameEvents } from '../data/GameEvents';
 

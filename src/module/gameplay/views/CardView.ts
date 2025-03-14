@@ -1,8 +1,8 @@
 import { Scene, GameObjects } from 'phaser';
 import { CardModel } from '../models/CardModel';
-import { AssetManager } from '../managers/AssetManager';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import { AssetManager } from '../../../managers/AssetManager';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 export class CardView extends GameObjects.Container {
     private model: CardModel;

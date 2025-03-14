@@ -2,8 +2,8 @@ import { Scene, GameObjects } from 'phaser';
 import { HandModel, SortType } from '../models/HandModel';
 import { CardView } from './CardView';
 import { CardModel } from '../models/CardModel';
-import EventBus from '../base/EventBus';
-import { GameEvents } from '../data/GameEvents';
+import EventBus from '../../../base/EventBus';
+import { GameEvents } from '../../../data/GameEvents';
 
 export class HandView {
     private scene: Scene;
