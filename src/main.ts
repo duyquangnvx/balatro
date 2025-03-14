@@ -1,7 +1,10 @@
 import 'phaser';
 import { PreloadScene } from './scenes/PreloadScene';
-import { Game } from './scenes/Game';
+import { GameplayScene } from './module/gameplay/GameplayScene';
 import { SceneKeys } from './scenes/SceneKeys';
+import { GameplayService } from './module/gameplay/GameplayService';
+
+GameplayService.getInstance().initialize();
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -10,7 +13,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: 1280,
     height: 720,
     parent: 'game-container',
-    scene: [PreloadScene, Game],
+    scene: [PreloadScene, GameplayScene],
     physics: {
         default: 'arcade',
         arcade: {

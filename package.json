@@ -37,6 +37,7 @@
         "webpack-merge": "^5.10.0"
     },
     "dependencies": {
+        "eventemitter3": "^5.0.1",
         "phaser": "^3.88.2"
     }
 }

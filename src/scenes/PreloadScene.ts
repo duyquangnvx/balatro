@@ -51,7 +51,7 @@ export class PreloadScene extends Scene {
         // Clean up and transition when loading completes
         this.load.on('complete', () => {
             this.cleanupLoadingUI();
-            this.scene.start(SceneKeys.GAME);
+            this.scene.start(SceneKeys.GAMEPLAY);
         });
     }
 
