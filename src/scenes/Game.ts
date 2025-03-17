@@ -1,13 +1,16 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from './SceneKeys';
-import { GameState } from '../managers/GameState';
-import { DeckStyle } from '../models/DeckStyle';
-import { Enhancement } from '../models/types';
-import { Card } from '../models/Card';
+import { DeckStyle } from '../module/gameplay/models/types';
+import { Enhancement } from '../module/gameplay/models/types';
+import { GameplayService } from '../module/gameplay/GameplayService';
+import { DeckObject } from '../module/gameplay/objects/DeckObject';
+import { HandObject } from '../module/gameplay/objects/HandObject';
 
 export class Game extends Scene
 {
-    private gameState!: GameState;
+    private gameplayService!: GameplayService;
+    private deckObject!: DeckObject;
+    private handObject!: HandObject;
 
     constructor ()
     {
@@ -28,10 +31,20 @@ export class Game extends Scene
         const bg = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'background');
         bg.setOrigin(0.5, 0.5); // Center the image
 
-        // Initialize game state
-        this.gameState = new GameState(this);
+        // Initialize gameplay service
+        this.gameplayService = GameplayService.getInstance();
+        this.gameplayService.initialize(this);
         
-        // Add deck style button (simple version without DeckStyleManager)
+        // Create UI objects
+        const deck = this.gameplayService.getDeck();
+        const hand = this.gameplayService.getPlayerHand();
+        
+        if (deck && hand) {
+            this.deckObject = new DeckObject(this, deck);
+            this.handObject = new HandObject(this, hand, this.deckObject);
+        }
+        
+        // Add deck style button
         const styleButton = this.add.text(
             20, 
             20, 
@@ -73,11 +86,16 @@ export class Game extends Scene
      */
     private cycleDeckStyle(): void {
         const styles = Object.values(DeckStyle);
-        const currentStyle = this.gameState.getDeckStyle();
+        const currentStyle = this.gameplayService.getDeckStyle();
         const currentIndex = styles.indexOf(currentStyle);
         const nextIndex = (currentIndex + 1) % styles.length;
         
-        this.gameState.setDeckStyle(styles[nextIndex]);
+        this.gameplayService.setDeckStyle(styles[nextIndex]);
+        
+        // Update UI objects
+        if (this.deckObject) {
+            this.deckObject.update();
+        }
     }
 
     /**
@@ -85,7 +103,7 @@ export class Game extends Scene
      */
     private cycleEnhancement(): void {
         const enhancements = Object.values(Enhancement);
-        const selectedCards = this.gameState.getSelectedCards();
+        const selectedCards = this.gameplayService.getSelectedCards();
         
         if (selectedCards.length === 0) {
             console.log('No cards selected. Please select a card first.');
@@ -99,12 +117,23 @@ export class Game extends Scene
         const nextEnhancement = enhancements[nextIndex];
         
         // Apply the new enhancement to all selected cards
-        selectedCards.forEach((card: Card) => {
-            card.setEnhancement(nextEnhancement);
-        });
+        this.gameplayService.enhanceSelectedCards(nextEnhancement);
+        
+        // Update UI objects
+        if (this.handObject) {
+            this.handObject.update();
+        }
     }
 
     destroy(): void {
-        this.gameState.destroy();
+        if (this.deckObject) {
+            this.deckObject.destroy();
+        }
+        
+        if (this.handObject) {
+            this.handObject.destroy();
+        }
+        
+        this.gameplayService.destroy();
     }
 }

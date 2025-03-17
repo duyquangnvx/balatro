@@ -1,4 +1,4 @@
-import { Card } from '../models/Card';
+import { Card } from '../module/gameplay/models/Card';
 
 export enum GamePhase {
     INITIALIZING = 'INITIALIZING',
