@@ -2,6 +2,7 @@ import { Scene, GameObjects } from 'phaser';
 import { Card } from '../models/Card';
 import { AssetManager } from '../../../managers/AssetManager';
 import { GameplayService } from '../GameplayService';
+import { DeckStyle } from '../models/types';
 
 /**
  * CardObject - UI representation of a Card model
@@ -170,7 +171,9 @@ export class CardObject extends GameObjects.Container {
      * @returns The frame name for the card back
      */
     private getCardBackFrame(): string {
-        return `${this.card.getDeckStyle()}.png`;
+        // Get deck style from card, or use default if not available
+        const deckStyle = this.card.getDeckStyle() || this.gameplayService.getDeckStyle() || DeckStyle.RED;
+        return `${deckStyle}.png`;
     }
 
     /**

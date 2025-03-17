@@ -13,7 +13,6 @@ export class GameplayService {
     private scene: Scene | null = null;
     private deck: Deck | null = null;
     private playerHand: Hand | null = null;
-    private currentDeckStyle: DeckStyle = DeckStyle.RED;
     
     private constructor() {
         // Private constructor to enforce singleton pattern
@@ -38,27 +37,24 @@ export class GameplayService {
         
         // Initialize game components
         this.deck = new Deck();
-        this.deck.setDeckStyle(this.currentDeckStyle);
         this.playerHand = new Hand(this.deck);
     }
     
     /**
      * Get the current deck style
      */
-    public getDeckStyle(): DeckStyle {
-        return this.currentDeckStyle;
+    public getDeckStyle(): DeckStyle | null {
+        if (!this.deck) return null;
+        return this.deck.getDeckStyle();
     }
     
     /**
-     * Set the deck style and update all cards
+     * Set the deck style
      * @param style The new deck style
      */
     public setDeckStyle(style: DeckStyle): void {
-        this.currentDeckStyle = style;
-        
-        // Update all cards to use the new style
         if (this.deck) {
-            this.deck.setDeckStyle(this.currentDeckStyle);
+            this.deck.setDeckStyle(style);
         }
     }
     

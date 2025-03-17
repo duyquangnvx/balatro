@@ -87,14 +87,16 @@ export class Game extends Scene
     private cycleDeckStyle(): void {
         const styles = Object.values(DeckStyle);
         const currentStyle = this.gameplayService.getDeckStyle();
-        const currentIndex = styles.indexOf(currentStyle);
-        const nextIndex = (currentIndex + 1) % styles.length;
-        
-        this.gameplayService.setDeckStyle(styles[nextIndex]);
-        
-        // Update UI objects
-        if (this.deckObject) {
-            this.deckObject.update();
+        if (currentStyle) {
+            const currentIndex = styles.indexOf(currentStyle);
+            const nextIndex = (currentIndex + 1) % styles.length;
+            
+            this.gameplayService.setDeckStyle(styles[nextIndex]);
+            
+            // Update UI objects
+            if (this.deckObject) {
+                this.deckObject.update();
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-import { ICard, Suit, Rank, Enhancement, DeckStyle } from './types';
+import { ICard, Suit, Rank, Enhancement } from './types';
 
 /**
  * Card model class - Contains card data and business logic
@@ -9,14 +9,15 @@ export class Card implements ICard {
     public value: number;
     public isVisible: boolean;
     private enhancement: Enhancement = Enhancement.NORMAL;
-    private deckStyle: DeckStyle;
     private selectable: boolean = true;
+    
+    // Reference to the deck this card belongs to (can be null if not in a deck)
+    private deckReference: any = null;
 
-    constructor(suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
+    constructor(suit: Suit, rank: Rank) {
         this.suit = suit;
         this.rank = rank;
         this.isVisible = false;
-        this.deckStyle = deckStyle;
         this.value = this.calculateValue();
     }
 
@@ -34,18 +35,22 @@ export class Card implements ICard {
     }
 
     /**
-     * Set the deck style for this card
-     * @param style The new deck style
+     * Set the reference to the deck this card belongs to
+     * @param deck The deck this card belongs to
      */
-    public setDeckStyle(style: DeckStyle): void {
-        this.deckStyle = style;
+    public setDeckReference(deck: any): void {
+        this.deckReference = deck;
     }
 
     /**
-     * Get the current deck style
+     * Get the deck style from the deck this card belongs to
+     * If no deck is referenced, returns undefined
      */
-    public getDeckStyle(): DeckStyle {
-        return this.deckStyle;
+    public getDeckStyle(): any {
+        if (this.deckReference && typeof this.deckReference.getDeckStyle === 'function') {
+            return this.deckReference.getDeckStyle();
+        }
+        return undefined;
     }
 
     /**

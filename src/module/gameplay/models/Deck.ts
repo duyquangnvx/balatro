@@ -32,9 +32,11 @@ export class Deck {
             ranks.forEach(rank => {
                 const card = new Card(
                     suit as any,
-                    rank as any,
-                    this.currentStyle
+                    rank as any
                 );
+                
+                // Set reference to this deck
+                card.setDeckReference(this);
                 
                 // Cards in deck should not be selectable
                 card.setSelectable(false);
@@ -85,6 +87,9 @@ export class Deck {
         // Cards in deck should not be selectable
         card.setSelectable(false);
         
+        // Ensure card references this deck
+        card.setDeckReference(this);
+        
         // Add card back to deck
         this.cards.push(card);
     }
@@ -102,20 +107,6 @@ export class Deck {
      */
     public setDeckStyle(style: DeckStyle): void {
         this.currentStyle = style;
-        this.refreshCardBacks();
-    }
-
-    /**
-     * Refresh all face-down cards to show the current card back style
-     */
-    public refreshCardBacks(): void {
-        this.cards.forEach(card => {
-            if (!card.isVisible) {
-                card.setDeckStyle(this.currentStyle);
-                // Re-flip the card to update its back texture
-                card.flip(false);
-            }
-        });
     }
 
     /**

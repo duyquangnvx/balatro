@@ -46,9 +46,11 @@ export class DeckObject {
             // Create a card object at the deck position
             const card = new Card(
                 'hearts' as any, // Dummy suit, not visible
-                'A' as any,      // Dummy rank, not visible
-                this.deck.getDeckStyle()
+                'A' as any       // Dummy rank, not visible
             );
+            
+            // Set reference to the deck
+            card.setDeckReference(this.deck);
             
             const cardObject = new CardObject(
                 this.scene,
