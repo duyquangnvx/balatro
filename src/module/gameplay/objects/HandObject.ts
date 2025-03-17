@@ -37,8 +37,8 @@ export class HandObject {
         // Create initial card objects
         this.createCardObjects();
         
-        // Arrange cards
-        this.arrangeCards();
+        // Arrange cards without animation initially
+        this.arrangeCards(false);
     }
 
     private createCardObjects(): void {
@@ -51,13 +51,14 @@ export class HandObject {
             // Create a unique key for the card
             const cardKey = `${card.suit}_${card.rank}`;
             
-            // Create a card object
+            // Create a card object with just the card parameter
             const cardObject = new CardObject(
                 this.scene,
-                0, // Will be positioned by arrangeCards
-                0,
                 card
             );
+            
+            // Set reference to this hand object
+            cardObject.setHandObject(this);
             
             // Store the card object
             this.cardObjects.set(cardKey, cardObject);
@@ -164,12 +165,12 @@ export class HandObject {
         
         this.sortByRankButton.on('pointerdown', () => {
             this.hand.sortByRank();
-            this.arrangeCards();
+            this.arrangeCards(true);
         });
         
         this.sortBySuitButton.on('pointerdown', () => {
             this.hand.sortBySuit();
-            this.arrangeCards();
+            this.arrangeCards(true);
         });
         
         this.discardButton.on('pointerdown', () => {
@@ -177,7 +178,7 @@ export class HandObject {
         });
     }
 
-    private arrangeCards(): void {
+    private arrangeCards(animate: boolean = false): void {
         const cards = this.hand.getAllCards();
         const totalWidth = (cards.length - 1) * this.CARD_SPACING;
         const startX = (this.scene.cameras.main.width - totalWidth) / 2;
@@ -190,9 +191,26 @@ export class HandObject {
             
             if (cardObject) {
                 const x = startX + (index * this.CARD_SPACING);
-                const y = baseY - (this.hand.isCardSelected(card) ? this.SELECTED_OFFSET : 0);
+                const y = baseY;
                 
-                cardObject.setPosition(x, y);
+                if (animate) {
+                    // For animation, only animate the X position to avoid interfering with lift animation
+                    this.scene.tweens.add({
+                        targets: cardObject,
+                        x: x,
+                        duration: 300,
+                        ease: 'Back.easeOut',
+                        onComplete: () => {
+                            // After animation completes, ensure the Y position is correct
+                            // This will respect the card's selected state
+                            cardObject.setPosition(cardObject.x, y);
+                        }
+                    });
+                } else {
+                    // Immediately set position without animation
+                    cardObject.setPosition(x, y);
+                }
+                
                 cardObject.setDepth(index); // Ensure proper layering
             }
         });
@@ -227,8 +245,8 @@ export class HandObject {
         // Create new card objects for newly drawn cards
         this.createCardObjects();
         
-        // Rearrange cards
-        this.arrangeCards();
+        // Rearrange cards with animation
+        this.arrangeCards(true);
     }
 
     /**
@@ -240,8 +258,8 @@ export class HandObject {
             cardObject.update();
         });
         
-        // Rearrange cards
-        this.arrangeCards();
+        // Rearrange cards without animation for regular updates
+        this.arrangeCards(false);
     }
 
     /**

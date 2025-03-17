@@ -1,5 +1,7 @@
 import { Card } from './Card';
 import { Deck } from './Deck';
+import { Suit } from './types';
+import { Rank } from './types';
 
 // Enum to track current sort type
 enum SortType {
@@ -57,22 +59,27 @@ export class Hand {
     }
 
     private sortBySuitInternal(): void {
-        // Sort by suit first, then by rank
         this.cards.sort((a, b) => {
-            if (a.suit !== b.suit) {
-                return a.suit.localeCompare(b.suit);
-            }
-            return a.rank.localeCompare(b.rank);
+            // First sort by suit
+            const suitCompare = Object.values(Suit).indexOf(a.suit) - Object.values(Suit).indexOf(b.suit);
+            if (suitCompare !== 0) return suitCompare;
+            
+            // Then by rank within suit
+            const rankA = Object.values(Rank).indexOf(a.rank);
+            const rankB = Object.values(Rank).indexOf(b.rank);
+            return rankA - rankB;
         });
     }
 
     private sortByRankInternal(): void {
-        // Sort by rank first, then by suit
         this.cards.sort((a, b) => {
-            if (a.rank !== b.rank) {
-                return a.value - b.value;
-            }
-            return a.suit.localeCompare(b.suit);
+            // First sort by rank
+            const rankA = Object.values(Rank).indexOf(a.rank);
+            const rankB = Object.values(Rank).indexOf(b.rank);
+            if (rankA !== rankB) return rankA - rankB;
+            
+            // Then by suit
+            return Object.values(Suit).indexOf(a.suit) - Object.values(Suit).indexOf(b.suit);
         });
     }
 

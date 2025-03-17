@@ -3,6 +3,7 @@ import { Card } from '../models/Card';
 import { AssetManager } from '../../../managers/AssetManager';
 import { GameplayService } from '../GameplayService';
 import { DeckStyle } from '../models/types';
+import { HandObject } from './HandObject';
 
 /**
  * CardObject - UI representation of a Card model
@@ -15,11 +16,14 @@ export class CardObject extends GameObjects.Container {
     private border: GameObjects.Graphics;
     private shakeAnimation?: Phaser.Tweens.Tween;
     private zoomAnimation?: Phaser.Tweens.Tween;
+    private liftAnimation?: Phaser.Tweens.Tween;
     private initialized: boolean = false;
     private gameplayService: GameplayService;
+    private handObject?: HandObject;
+    private originalY: number = 0;
 
-    constructor(scene: Scene, x: number, y: number, card: Card) {
-        super(scene, 0, 0); // Initialize at 0,0 first
+    constructor(scene: Scene, card: Card) {
+        super(scene, 0, 0); // Initialize at 0,0
         this.card = card;
         this.gameplayService = GameplayService.getInstance();
         
@@ -71,12 +75,18 @@ export class CardObject extends GameObjects.Container {
         this.updateVisibility();
         this.updateBorder();
         
-        // Now that everything is initialized, set the position
+        // Now that everything is initialized
         this.initialized = true;
-        this.setPosition(x, y);
         
         // Add to scene
         scene.add.existing(this);
+    }
+
+    /**
+     * Set the hand object reference
+     */
+    public setHandObject(handObject: HandObject): void {
+        this.handObject = handObject;
     }
 
     /**
@@ -129,6 +139,58 @@ export class CardObject extends GameObjects.Container {
             duration: 100,
             ease: 'Power1'
         });
+    }
+
+    /**
+     * Animate card lifting up when selected
+     */
+    private liftUp(): void {
+        // Stop any existing lift animation
+        this.stopLift();
+        
+        // Store original Y position if not already stored
+        if (this.originalY === 0) {
+            this.originalY = this.y + 20; // Add offset since the card might already be lifted
+        }
+        
+        // Create a new lift animation
+        this.liftAnimation = this.scene.tweens.add({
+            targets: this,
+            y: this.originalY - 20, // Lift up by 20 pixels
+            duration: 200,
+            ease: 'Back.easeOut'
+        });
+    }
+    
+    /**
+     * Animate card lowering down when unselected
+     */
+    private lowerDown(): void {
+        // Stop any existing lift animation
+        this.stopLift();
+        
+        // Ensure we have a valid originalY
+        if (this.originalY === 0) {
+            this.originalY = this.y; // Use current Y as base if not set
+        }
+        
+        // Create a new lower animation
+        this.liftAnimation = this.scene.tweens.add({
+            targets: this,
+            y: this.originalY,
+            duration: 200,
+            ease: 'Back.easeIn'
+        });
+    }
+    
+    /**
+     * Stop lift/lower animation
+     */
+    private stopLift(): void {
+        if (this.liftAnimation) {
+            this.liftAnimation.stop();
+            this.liftAnimation = undefined;
+        }
     }
 
     private singleShake(): void {
@@ -206,7 +268,11 @@ export class CardObject extends GameObjects.Container {
                 width + 4,
                 height + 4
             );
+            
+            // Note: We don't trigger liftUp() here to avoid duplicate animations
+            // Animation is triggered directly in onClick method
         }
+        // Note: We don't trigger lowerDown() here to avoid duplicate animations
     }
 
     /**
@@ -232,11 +298,27 @@ export class CardObject extends GameObjects.Container {
     }
 
     public setPosition(x: number, y: number): this {
-        super.setPosition(x, y);
-        // Only update border if initialization is complete
-        if (this.initialized) {
-            this.updateBorder();
+        // Store original Y position for animation reference if not already set
+        if (this.initialized && this.originalY === 0) {
+            this.originalY = y;
         }
+        
+        // Check if card is currently selected
+        const playerHand = this.gameplayService?.getPlayerHand();
+        const isSelected = playerHand?.isCardSelected(this.card) || false;
+        
+        // If card is selected, adjust the y position to maintain the lifted state
+        const adjustedY = isSelected ? y - 20 : y;
+        
+        // Set position with potentially adjusted Y
+        super.setPosition(x, adjustedY);
+        
+        // Check if card is already selected and apply animation if this is the first positioning
+        if (isSelected && this.liftAnimation === undefined) {
+            this.liftUp();
+        }
+        
+        this.updateBorder();
         return this;
     }
 
@@ -253,7 +335,18 @@ export class CardObject extends GameObjects.Container {
         if (this.card.isSelectable()) {
             const playerHand = this.gameplayService.getPlayerHand();
             if (playerHand) {
+                // Toggle selection in the model
+                const wasSelected = playerHand.isCardSelected(this.card);
                 playerHand.toggleCardSelection(this.card);
+                
+                // Immediately trigger animation based on new selection state
+                if (wasSelected) {
+                    this.lowerDown(); // Card was selected, now unselected
+                } else {
+                    this.liftUp(); // Card was unselected, now selected
+                }
+                
+                // Update border
                 this.updateBorder();
             }
         }
@@ -262,6 +355,7 @@ export class CardObject extends GameObjects.Container {
     public destroy(): void {
         this.stopShake();
         this.stopZoom();
+        this.stopLift();
         super.destroy();
     }
 } 
