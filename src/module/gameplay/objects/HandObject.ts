@@ -190,7 +190,7 @@ export class HandObject {
             
             if (cardObject) {
                 const x = startX + (index * this.CARD_SPACING);
-                const y = baseY - (card.isCardSelected() ? this.SELECTED_OFFSET : 0);
+                const y = baseY - (this.hand.isCardSelected(card) ? this.SELECTED_OFFSET : 0);
                 
                 cardObject.setPosition(x, y);
                 cardObject.setDepth(index); // Ensure proper layering

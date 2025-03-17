@@ -95,7 +95,6 @@ export class Hand {
     }
 
     public clearSelection(): void {
-        this.selectedCards.forEach(card => card.setSelected(false));
         this.selectedCards.clear();
     }
 
@@ -110,7 +109,6 @@ export class Hand {
             const index = this.cards.indexOf(card);
             if (index !== -1) {
                 this.cards.splice(index, 1);
-                card.setSelected(false); // Clear selection
             }
         });
 
@@ -125,13 +123,11 @@ export class Hand {
     public selectCard(card: Card): void {
         if (this.cards.includes(card) && card.isSelectable()) {
             this.selectedCards.add(card);
-            card.setSelected(true);
         }
     }
 
     public deselectCard(card: Card): void {
         this.selectedCards.delete(card);
-        card.setSelected(false);
     }
 
     public toggleCardSelection(card: Card): void {
@@ -140,6 +136,13 @@ export class Hand {
         } else {
             this.selectCard(card);
         }
+    }
+
+    /**
+     * Check if a card is selected
+     */
+    public isCardSelected(card: Card): boolean {
+        return this.selectedCards.has(card);
     }
 
     /**

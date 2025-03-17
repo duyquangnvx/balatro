@@ -10,7 +10,6 @@ export class Card implements ICard {
     public isVisible: boolean;
     private enhancement: Enhancement = Enhancement.NORMAL;
     private deckStyle: DeckStyle;
-    private selected: boolean = false;
     private selectable: boolean = true;
 
     constructor(suit: Suit, rank: Rank, deckStyle: DeckStyle = DeckStyle.RED) {
@@ -70,21 +69,6 @@ export class Card implements ICard {
      */
     public flip(faceUp: boolean = true): void {
         this.isVisible = faceUp;
-    }
-
-    /**
-     * Set whether the card is selected
-     * @param selected Whether the card is selected
-     */
-    public setSelected(selected: boolean): void {
-        this.selected = selected;
-    }
-
-    /**
-     * Check if the card is selected
-     */
-    public isCardSelected(): boolean {
-        return this.selected;
     }
 
     /**

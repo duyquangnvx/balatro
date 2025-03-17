@@ -188,7 +188,10 @@ export class CardObject extends GameObjects.Container {
         
         this.border.clear();
         
-        if (this.card.isCardSelected()) {
+        const playerHand = this.gameplayService.getPlayerHand();
+        const isSelected = playerHand?.isCardSelected(this.card) || false;
+        
+        if (isSelected) {
             // Draw a yellow border around the card
             this.border.lineStyle(3, 0xffff00, 1);
             const width = this.faceSprite.width;
