@@ -1,35 +1,34 @@
 import { Scene, GameObjects } from 'phaser';
-import { Card } from '../models/Card';
+import { CardModel } from '../models/CardModel';
 import { AssetManager } from '../../../managers/AssetManager';
 import { GameplayService } from '../GameplayService';
-import { DeckStyle } from '../models/types';
-import { HandObject } from './HandObject';
+import { HandView } from './HandView';
 
 /**
- * CardObject - UI representation of a Card model
+ * CardView - UI representation of a Card model
  */
-export class CardObject extends GameObjects.Container {
-    private card: Card;
+export class CardView extends GameObjects.Container {
+    private gameplayService: GameplayService;
+    private model: CardModel;
     private faceSprite: GameObjects.Sprite;
     private backSprite: GameObjects.Sprite;
     private enhancementSprite: GameObjects.Sprite;
-    private border: GameObjects.Graphics;
     private shakeAnimation?: Phaser.Tweens.Tween;
     private zoomAnimation?: Phaser.Tweens.Tween;
     private liftAnimation?: Phaser.Tweens.Tween;
-    private initialized: boolean = false;
-    private gameplayService: GameplayService;
-    private handObject?: HandObject;
+    private handView?: HandView;
     private originalY: number = 0;
 
-    constructor(scene: Scene, card: Card) {
-        super(scene, 0, 0); // Initialize at 0,0
-        this.card = card;
+    private onClickCallback: (cardView: CardView) => void;
+
+    constructor(scene: Scene, model: CardModel) {
+        super(scene, 0, 0);
+        this.model = model;
         this.gameplayService = GameplayService.getInstance();
         
         // Initialize enhancement sprite first (below the card face)
         this.enhancementSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
-        this.enhancementSprite.setVisible(false); // Hide initially when card is face down
+        this.enhancementSprite.setVisible(false);
         this.add(this.enhancementSprite);
         
         // Initialize face sprite (initially hidden)
@@ -44,10 +43,6 @@ export class CardObject extends GameObjects.Container {
         
         // Scale enhancement sprite to match card size
         this.enhancementSprite.setScale(this.faceSprite.width / this.enhancementSprite.width);
-        
-        // Create border graphics (initially invisible)
-        this.border = scene.add.graphics();
-        this.add(this.border);
         
         // Set the size of the container based on the sprite dimensions
         const width = this.faceSprite.width;
@@ -70,23 +65,17 @@ export class CardObject extends GameObjects.Container {
         this.on('pointerover', this.onPointerOver, this);
         this.on('pointerout', this.onPointerOut, this);
         this.on('pointerdown', this.onClick, this);
-        
-        // Update UI based on card state
-        this.updateVisibility();
-        this.updateBorder();
-        
-        // Now that everything is initialized
-        this.initialized = true;
-        
-        // Add to scene
-        scene.add.existing(this);
     }
 
     /**
      * Set the hand object reference
      */
-    public setHandObject(handObject: HandObject): void {
-        this.handObject = handObject;
+    public setHandObject(handView: HandView): void {
+        this.handView = handView;
+    }
+
+    public setOnClickCallback(callback: (cardView: CardView) => void): void {
+        this.onClickCallback = callback;
     }
 
     /**
@@ -105,9 +94,12 @@ export class CardObject extends GameObjects.Container {
         this.stopZoom();
     }
 
-    /**
-     * Start zoom effect
-     */
+    private onClick(): void {
+        if (this.onClickCallback) {
+            this.onClickCallback(this);
+        }
+    }
+
     private startZoom(): void {
         // Stop any existing zoom animation
         this.stopZoom();
@@ -122,9 +114,6 @@ export class CardObject extends GameObjects.Container {
         });
     }
 
-    /**
-     * Stop zoom effect
-     */
     private stopZoom(): void {
         if (this.zoomAnimation) {
             this.zoomAnimation.stop();
@@ -144,7 +133,7 @@ export class CardObject extends GameObjects.Container {
     /**
      * Animate card lifting up when selected
      */
-    private liftUp(): void {
+    public liftUp(): void {
         // Stop any existing lift animation
         this.stopLift();
         
@@ -165,7 +154,7 @@ export class CardObject extends GameObjects.Container {
     /**
      * Animate card lowering down when unselected
      */
-    private lowerDown(): void {
+    public lowerDown(): void {
         // Stop any existing lift animation
         this.stopLift();
         
@@ -210,9 +199,6 @@ export class CardObject extends GameObjects.Container {
         });
     }
 
-    /**
-     * Stop shake effect
-     */
     private stopShake(): void {
         if (this.shakeAnimation) {
             this.shakeAnimation.stop();
@@ -220,12 +206,63 @@ export class CardObject extends GameObjects.Container {
         }
     }
 
+    
+    public setPosition(x: number, y: number): this {
+        // Store original Y position for animation reference if not already set
+        if (this.originalY === 0) {
+            this.originalY = y;
+        }
+        
+        // Check if card is currently selected
+        if (this.handView) {
+            const handModel = this.handView.getModel();
+            const isSelected = handModel.isCardSelected(this.model) || false;
+
+            // If card is selected, adjust the y position to maintain the lifted state
+       
+            const adjustedY = isSelected ? y - 20 : y;
+            // Set position with potentially adjusted Y
+            super.setPosition(x, adjustedY);
+
+            // Check if card is already selected and apply animation if this is the first positioning
+            if (isSelected && this.liftAnimation === undefined) {
+                this.liftUp();
+            }
+
+            return this;
+        }
+
+        super.setPosition(x, y);
+        
+        return this;
+    }
+
     /**
+     * Update the card view based on model changes
+     */
+    public updateView(): void {
+         // Update visibility based on model
+        const isFaceUp = this.model.isFaceUp();
+        this.faceSprite.setVisible(isFaceUp);
+        this.backSprite.setVisible(!isFaceUp);
+        this.enhancementSprite.setVisible(isFaceUp);
+        
+        // Update textures
+        this.faceSprite.setTexture(AssetManager.ATLAS.CARDS, this.getFaceCardFrame());
+        this.backSprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
+    }
+
+    public getModel(): CardModel {
+        return this.model;
+    }
+
+       /**
      * Get the frame name for the face-up card (from CARDS atlas)
      * @returns The frame name for the face-up card
      */
-    private getFaceCardFrame(): string {
-        return `${this.card.suit}_${this.card.rank}.png`;
+       private getFaceCardFrame(): string {
+        return `${this.model.suit}_${this.model.rank}.png`;
     }
 
     /**
@@ -234,7 +271,7 @@ export class CardObject extends GameObjects.Container {
      */
     private getCardBackFrame(): string {
         // Get deck style from card, or use default if not available
-        const deckStyle = this.card.getDeckStyle() || this.gameplayService.getDeckStyle() || DeckStyle.RED;
+        const deckStyle = this.model.getDeckStyle();
         return `${deckStyle}.png`;
     }
 
@@ -242,114 +279,7 @@ export class CardObject extends GameObjects.Container {
      * Get the frame name for the enhancement sprite
      */
     private getEnhancementFrame(): string {
-        return `${this.card.getEnhancement()}.png`;
-    }
-
-    /**
-     * Update the border based on selection state
-     */
-    private updateBorder(): void {
-        if (!this.initialized || !this.border) return;
-        
-        this.border.clear();
-        
-        const playerHand = this.gameplayService.getPlayerHand();
-        const isSelected = playerHand?.isCardSelected(this.card) || false;
-        
-        if (isSelected) {
-            // Draw a yellow border around the card
-            this.border.lineStyle(3, 0xffff00, 1);
-            const width = this.faceSprite.width;
-            const height = this.faceSprite.height;
-            // Draw border relative to container center
-            this.border.strokeRect(
-                -width / 2 - 2,
-                -height / 2 - 2,
-                width + 4,
-                height + 4
-            );
-            
-            // Note: We don't trigger liftUp() here to avoid duplicate animations
-            // Animation is triggered directly in onClick method
-        }
-        // Note: We don't trigger lowerDown() here to avoid duplicate animations
-    }
-
-    /**
-     * Update visibility of sprites based on card state
-     */
-    private updateVisibility(): void {
-        const isVisible = this.card.isVisible;
-        this.faceSprite.setVisible(isVisible);
-        this.backSprite.setVisible(!isVisible);
-        this.enhancementSprite.setVisible(isVisible);
-    }
-
-    /**
-     * Update the card object based on model changes
-     */
-    public update(): void {
-        this.updateVisibility();
-        this.updateBorder();
-        
-        // Update textures
-        this.backSprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
-        this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
-    }
-
-    public setPosition(x: number, y: number): this {
-        // Store original Y position for animation reference if not already set
-        if (this.initialized && this.originalY === 0) {
-            this.originalY = y;
-        }
-        
-        // Check if card is currently selected
-        const playerHand = this.gameplayService?.getPlayerHand();
-        const isSelected = playerHand?.isCardSelected(this.card) || false;
-        
-        // If card is selected, adjust the y position to maintain the lifted state
-        const adjustedY = isSelected ? y - 20 : y;
-        
-        // Set position with potentially adjusted Y
-        super.setPosition(x, adjustedY);
-        
-        // Check if card is already selected and apply animation if this is the first positioning
-        if (isSelected && this.liftAnimation === undefined) {
-            this.liftUp();
-        }
-        
-        this.updateBorder();
-        return this;
-    }
-
-    public getSprite(): GameObjects.Sprite {
-        return this.card.isVisible ? this.faceSprite : this.backSprite;
-    }
-
-    public getCard(): Card {
-        return this.card;
-    }
-
-    private onClick(): void {
-        // Only allow selection if the card is selectable
-        if (this.card.isSelectable()) {
-            const playerHand = this.gameplayService.getPlayerHand();
-            if (playerHand) {
-                // Toggle selection in the model
-                const wasSelected = playerHand.isCardSelected(this.card);
-                playerHand.toggleCardSelection(this.card);
-                
-                // Immediately trigger animation based on new selection state
-                if (wasSelected) {
-                    this.lowerDown(); // Card was selected, now unselected
-                } else {
-                    this.liftUp(); // Card was unselected, now selected
-                }
-                
-                // Update border
-                this.updateBorder();
-            }
-        }
+        return `${this.model.getEnhancement()}.png`;
     }
 
     public destroy(): void {

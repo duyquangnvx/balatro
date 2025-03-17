@@ -37,7 +37,7 @@ export interface ICard {
     suit: Suit;
     rank: Rank;
     value: number;
-    isVisible: boolean;
+    faceUp: boolean;
 } 
 
 /**

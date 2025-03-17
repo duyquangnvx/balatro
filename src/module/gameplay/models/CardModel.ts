@@ -1,15 +1,14 @@
-import { ICard, Suit, Rank, Enhancement } from './types';
+import { ICard, Suit, Rank, Enhancement, DeckStyle } from './types';
 
 /**
  * Card model class - Contains card data and business logic
  */
-export class Card implements ICard {
+export class CardModel implements ICard {
     public suit: Suit;
     public rank: Rank;
     public value: number;
-    public isVisible: boolean;
+    public faceUp: boolean;
     private enhancement: Enhancement = Enhancement.NORMAL;
-    private selectable: boolean = true;
     
     // Reference to the deck this card belongs to (can be null if not in a deck)
     private deckReference: any = null;
@@ -17,7 +16,7 @@ export class Card implements ICard {
     constructor(suit: Suit, rank: Rank) {
         this.suit = suit;
         this.rank = rank;
-        this.isVisible = false;
+        this.faceUp = false;
         this.value = this.calculateValue();
     }
 
@@ -32,6 +31,22 @@ export class Card implements ICard {
             default:
                 return parseInt(this.rank) || 0; // Number cards worth their face value
         }
+    }
+
+    public getSuit(): Suit {
+        return this.suit;
+    }
+
+    public getRank(): Rank {
+        return this.rank;
+    }
+
+    public getValue(): number {
+        return this.value;
+    }
+
+    public isFaceUp(): boolean {
+        return this.faceUp;
     }
 
     /**
@@ -50,7 +65,7 @@ export class Card implements ICard {
         if (this.deckReference && typeof this.deckReference.getDeckStyle === 'function') {
             return this.deckReference.getDeckStyle();
         }
-        return undefined;
+        return DeckStyle.RED;
     }
 
     /**
@@ -72,22 +87,7 @@ export class Card implements ICard {
      * Flip the card face up or face down
      * @param faceUp Whether the card should be face up
      */
-    public flip(faceUp: boolean = true): void {
-        this.isVisible = faceUp;
-    }
-
-    /**
-     * Set whether the card is selectable
-     * @param selectable Whether the card is selectable
-     */
-    public setSelectable(selectable: boolean): void {
-        this.selectable = selectable;
-    }
-
-    /**
-     * Check if the card is selectable
-     */
-    public isSelectable(): boolean {
-        return this.selectable;
+    public setFaceUp(faceUp: boolean = true): void {
+        this.faceUp = faceUp;
     }
 } 

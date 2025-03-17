@@ -1,5 +1,5 @@
-import { Card } from './Card';
-import { Deck } from './Deck';
+import { CardModel } from './CardModel';
+import { DeckModel } from './DeckModel';
 import { Suit } from './types';
 import { Rank } from './types';
 
@@ -13,30 +13,30 @@ enum SortType {
 /**
  * Hand model class - Contains hand data and business logic
  */
-export class Hand {
-    private cards: Card[] = [];
-    private deck: Deck;
-    private selectedCards: Set<Card> = new Set();
+export class HandModel {
+    private cards: CardModel[] = [];
+    private selectedCards: Set<CardModel> = new Set();
     private currentSortType: SortType = SortType.NONE;
+    private readonly MAX_CARDS = 8;
 
-    constructor(deck: Deck) {
-        this.deck = deck;
-        this.drawInitialHand();
+    constructor() {
+        this.cards = [];
+        this.selectedCards = new Set();
     }
 
-    private drawInitialHand(): void {
-        const newCards = this.deck.drawCards(8);
-        this.addCards(newCards);
-    }
+    public addCards(newCards: CardModel[]): void {
+        // Check if adding these cards would exceed the maximum
+        if (this.cards.length + newCards.length > this.MAX_CARDS) {
+            console.warn(`Cannot add ${newCards.length} cards. Maximum hand size is ${this.MAX_CARDS}`);
+            return;
+        }
 
-    public addCards(cards: Card[]): void {
         // Add cards to our collection
-        this.cards.push(...cards);
+        this.cards.push(...newCards);
         
-        // Ensure each card is properly set up
-        cards.forEach(card => {
-            // Make sure card is face up
-            card.flip(true);
+         // Make sure each card is face up
+        newCards.forEach(card => {
+            card.setFaceUp(true);
         });
 
         // Apply current sort if any
@@ -93,51 +93,70 @@ export class Hand {
         this.sortByRankInternal();
     }
 
-    public getSelectedCards(): Card[] {
+    public selectCard(card: CardModel): void {
+        if (this.cards.includes(card)) {
+            this.selectedCards.add(card);
+        }
+    }
+
+    public deselectCard(card: CardModel): void {
+        this.selectedCards.delete(card);
+    }
+
+    public isCardSelected(card: CardModel): boolean {
+        return this.selectedCards.has(card);
+    }
+
+    public getSelectedCards(): CardModel[] {
         return Array.from(this.selectedCards);
     }
 
-    public getAllCards(): Card[] {
+    public getCards(): CardModel[] {
         return [...this.cards];
+    }    
+
+    public getCardCount(): number {
+        return this.cards.length;
+    }
+
+    public getMaxCards(): number {
+        return this.MAX_CARDS;
+    }
+
+    public hasSpaceForCards(count: number): boolean {
+        return this.cards.length + count <= this.MAX_CARDS;
     }
 
     public clearSelection(): void {
         this.selectedCards.clear();
     }
 
-    public discardSelectedCards(): void {
-        if (this.selectedCards.size === 0) return;
+    /**
+     * Discard selected cards and return them
+     * @returns The discarded cards
+     */
+    public discardSelectedCards(): CardModel[] {
+        if (this.selectedCards.size === 0) return [];
 
-        // Store the number of cards to draw
-        const numCardsToReplace = this.selectedCards.size;
+        const discardedCards: CardModel[] = [];
 
         // Remove selected cards
         this.selectedCards.forEach(card => {
             const index = this.cards.indexOf(card);
             if (index !== -1) {
                 this.cards.splice(index, 1);
+                discardedCards.push(card);
             }
         });
 
         // Clear the selection set
         this.selectedCards.clear();
 
-        // Draw new cards to replace the discarded ones
-        const newCards = this.deck.drawCards(numCardsToReplace);
-        this.addCards(newCards);
+        return discardedCards;
     }
 
-    public selectCard(card: Card): void {
-        if (this.cards.includes(card) && card.isSelectable()) {
-            this.selectedCards.add(card);
-        }
-    }
 
-    public deselectCard(card: Card): void {
-        this.selectedCards.delete(card);
-    }
-
-    public toggleCardSelection(card: Card): void {
+    public toggleCardSelection(card: CardModel): void {
         if (this.selectedCards.has(card)) {
             this.deselectCard(card);
         } else {
@@ -145,18 +164,7 @@ export class Hand {
         }
     }
 
-    /**
-     * Check if a card is selected
-     */
-    public isCardSelected(card: Card): boolean {
-        return this.selectedCards.has(card);
-    }
-
-    /**
-     * Clean up resources
-     */
-    public destroy(): void {
-        // No resources to clean up in the model
+    public clear(): void {
         this.cards = [];
         this.selectedCards.clear();
     }

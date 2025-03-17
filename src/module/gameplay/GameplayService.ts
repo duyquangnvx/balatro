@@ -1,7 +1,6 @@
-import { Scene } from 'phaser';
-import { Card } from './models/Card';
-import { Deck } from './models/Deck';
-import { Hand } from './models/Hand';
+import { CardModel } from './models/CardModel';
+import { DeckModel } from './models/DeckModel';
+import { HandModel } from './models/HandModel';
 import { DeckStyle, Enhancement } from './models/types';
 
 /**
@@ -9,11 +8,13 @@ import { DeckStyle, Enhancement } from './models/types';
  */
 export class GameplayService {
     private static instance: GameplayService;
+
+    private deck: DeckModel;
+    private playerHand: HandModel;
+    private initialized: boolean = false;
     
-    private scene: Scene | null = null;
-    private deck: Deck | null = null;
-    private playerHand: Hand | null = null;
-    
+    private readonly MAX_CARDS_IN_HAND = 5;
+
     private constructor() {
         // Private constructor to enforce singleton pattern
     }
@@ -32,112 +33,33 @@ export class GameplayService {
      * Initialize the gameplay service with a scene
      * @param scene The game scene
      */
-    public initialize(scene: Scene): void {
-        this.scene = scene;
+    public initialize(): void {
+        if (this.initialized) { 
+            return;
+        }
         
         // Initialize game components
-        this.deck = new Deck();
-        this.playerHand = new Hand(this.deck);
+        this.deck = new DeckModel();
+        this.playerHand = new HandModel();
+        this.initialized = true;
     }
     
-    /**
-     * Get the current deck style
-     */
-    public getDeckStyle(): DeckStyle | null {
-        if (!this.deck) return null;
-        return this.deck.getDeckStyle();
-    }
-    
-    /**
-     * Set the deck style
-     * @param style The new deck style
-     */
-    public setDeckStyle(style: DeckStyle): void {
-        if (this.deck) {
-            this.deck.setDeckStyle(style);
-        }
-    }
-    
-    /**
-     * Get the player's hand
-     */
-    public getPlayerHand(): Hand | null {
-        return this.playerHand;
-    }
-    
-    /**
-     * Get the deck
-     */
-    public getDeck(): Deck | null {
+    public getDeck(): DeckModel {
         return this.deck;
     }
-    
-    /**
-     * Get the selected cards from the player's hand
-     */
-    public getSelectedCards(): Card[] {
-        if (!this.playerHand) return [];
-        return this.playerHand.getSelectedCards();
+
+    public getPlayerHand(): HandModel {
+        return this.playerHand;
     }
-    
-    /**
-     * Draw a card from the deck
-     */
-    public drawCard(): Card | undefined {
-        if (!this.deck) return undefined;
-        return this.deck.drawCard();
+
+    public resetGame(): void {
+        this.deck = new DeckModel();
+        this.playerHand = new HandModel();
     }
-    
-    /**
-     * Draw multiple cards from the deck
-     */
-    public drawCards(count: number): Card[] {
-        if (!this.deck) return [];
-        return this.deck.drawCards(count);
-    }
-    
-    /**
-     * Add cards to the player's hand
-     */
-    public addCardsToHand(cards: Card[]): void {
-        if (!this.playerHand) return;
-        this.playerHand.addCards(cards);
-    }
-    
-    /**
-     * Apply enhancement to selected cards
-     */
-    public enhanceSelectedCards(enhancement: Enhancement): void {
-        const selectedCards = this.getSelectedCards();
-        selectedCards.forEach(card => {
-            card.setEnhancement(enhancement);
-        });
-    }
-    
-    /**
-     * Clean up resources
-     */
-    public destroy(): void {
-        if (this.deck) {
-            this.deck.destroy();
-        }
-        
-        if (this.playerHand) {
-            this.playerHand.destroy();
-        }
-        
-        this.deck = null;
-        this.playerHand = null;
-        this.scene = null;
-    }
-    
-    /**
-     * Reset the service (for testing or game restart)
-     */
-    public static reset(): void {
-        if (GameplayService.instance) {
-            GameplayService.instance.destroy();
-        }
-        GameplayService.instance = new GameplayService();
+
+    public startGame(): void {
+        this.resetGame();
+        this.deck.shuffle();
+        this.playerHand.addCards(this.deck.drawCards(this.MAX_CARDS_IN_HAND));
     }
 } 

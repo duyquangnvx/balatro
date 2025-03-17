@@ -1,4 +1,5 @@
 export enum SceneKeys {
     PRELOAD = 'PreloadScene',
-    GAME = 'GameScene'
+    GAME = 'GameScene',
+    GAMEPLAY = 'GameplayScene'
 } 
