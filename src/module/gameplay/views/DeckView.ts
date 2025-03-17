@@ -90,46 +90,6 @@ export class DeckView extends GameObjects.Container {
     }
 
     /**
-     * Draw a card from the deck and create a CardObject for it
-     */
-    public drawCard(): CardView | undefined {
-        const card = this.model.drawCard();
-        if (!card) return undefined;
-        
-        // Create a card object for the drawn card
-        const cardObject = new CardView(
-            this.scene,
-            card
-        );
-        cardObject.setPosition(this.x, this.y);
-        
-        // Reset rotation
-        cardObject.setRotation(0);
-        
-        // Set a higher depth for drawn cards
-        cardObject.setDepth(100);
-        
-        // Update deck count
-        this.updateDeckCount();
-        
-        return cardObject;
-    }
-
-    /**
-     * Draw multiple cards from the deck
-     */
-    public drawCards(count: number): CardView[] {
-        const drawnCardObjects: CardView[] = [];
-        for (let i = 0; i < count; i++) {
-            const cardObject = this.drawCard();
-            if (cardObject) {
-                drawnCardObjects.push(cardObject);
-            }
-        }
-        return drawnCardObjects;
-    }
-
-    /**
      * Update the deck object based on model changes
      */
     public updateView(): void {
@@ -138,6 +98,17 @@ export class DeckView extends GameObjects.Container {
 
         this.updateDeckCount();
         this.applyDeck3DEffect();
+    }
+
+    public popTopCard(): CardView | undefined {
+        const cardView = this.cardViews.pop();
+        if (cardView) {
+            this.remove(cardView);
+            cardView.setDepth(0); // Reset depth về 0 khi rời DeckView
+            this.applyDeck3DEffect();
+            this.updateDeckCount();
+        }
+        return cardView;
     }
 
     public getModel(): DeckModel {

@@ -16,6 +16,7 @@ export class CardView extends GameObjects.Container {
     private shakeAnimation?: Phaser.Tweens.Tween;
     private zoomAnimation?: Phaser.Tweens.Tween;
     private liftAnimation?: Phaser.Tweens.Tween;
+    private flipAnimation?: Phaser.Tweens.Tween;
     private handView?: HandView;
     private originalY: number = 0;
 
@@ -206,7 +207,67 @@ export class CardView extends GameObjects.Container {
         }
     }
 
-    
+    /**
+     * Animate flipping the card to a specific face
+     * @param faceUp True to flip to face up, false to flip to face down
+     * @param duration Duration of the flip animation in milliseconds (default: 300)
+     * @returns Promise that resolves when the flip animation is complete
+     */
+    public async animateFlip(faceUp: boolean, duration: number = 300): Promise<void> {
+        // Stop any existing flip animation
+        this.stopFlip();
+
+        // If already in the target state, resolve immediately
+        if (this.model.isFaceUp() === faceUp) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+            // Ensure card is not interactive during animation
+            this.setInteractive(false);
+
+            // First half of flip: shrink
+            this.flipAnimation = this.scene.tweens.add({
+                targets: this,
+                scaleX: 0,
+                duration: duration / 2,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Set the specified face state at midpoint
+                    this.model.setFaceUp(faceUp);
+                    this.updateView();
+
+                    // Second half of flip: expand
+                    this.flipAnimation = this.scene.tweens.add({
+                        targets: this,
+                        scaleX: 1,
+                        duration: duration / 2,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            // Clean up
+                            this.flipAnimation = undefined;
+                            this.setInteractive(true);
+                            resolve();
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    /**
+     * Stop the current flip animation if it exists
+     */
+    private stopFlip(): void {
+        if (this.flipAnimation) {
+            this.flipAnimation.stop();
+            this.flipAnimation = undefined;
+            // Reset scale to normal if interrupted
+            this.scaleX = 1;
+            this.setInteractive(true);
+        }
+    }
+        
     public setPosition(x: number, y: number): this {
         // Store original Y position for animation reference if not already set
         if (this.originalY === 0) {
@@ -251,6 +312,10 @@ export class CardView extends GameObjects.Container {
         this.faceSprite.setTexture(AssetManager.ATLAS.CARDS, this.getFaceCardFrame());
         this.backSprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
         this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
+    }
+
+    public setModel(model: CardModel): void {
+        this.model = model;
     }
 
     public getModel(): CardModel {

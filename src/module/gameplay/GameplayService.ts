@@ -13,7 +13,7 @@ export class GameplayService {
     private playerHand: HandModel;
     private initialized: boolean = false;
     
-    private readonly MAX_CARDS_IN_HAND = 5;
+    private readonly MAX_CARDS_IN_HAND = 8;
 
     private constructor() {
         // Private constructor to enforce singleton pattern

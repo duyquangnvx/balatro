@@ -2,6 +2,8 @@ import { Scene, GameObjects } from 'phaser';
 import { HandModel } from '../models/HandModel';
 import { CardView } from './CardView';
 import { GameplayService } from '../GameplayService';
+import { CardModel } from '../models/CardModel';
+import { DeckView } from './DeckView';
 
 /**
  * HandView - UI representation of a Hand model
@@ -12,124 +14,17 @@ export class HandView extends GameObjects.Container {
     private cardViews: CardView[] = [];
     private readonly CARD_SPACING = 80;
     private readonly BOTTOM_MARGIN = 200;
-    
-    // UI elements
-    private playHandButton: Phaser.GameObjects.Text;
-    private discardButton: Phaser.GameObjects.Text;
-    private sortContainer: Phaser.GameObjects.Container;
-    private sortByRankButton: Phaser.GameObjects.Text;
-    private sortBySuitButton: Phaser.GameObjects.Text;
 
     constructor(scene: Scene, model: HandModel) {
         super(scene);
         
         this.model = model;
         this.gameplayService = GameplayService.getInstance();
-
-        // Create UI elements
-        this.createButtons();
         
         // Initialize card views
         this.initializeCardViews();
 
         scene.add.existing(this);
-    }
-
-
-    private createButtons(): void {
-        const centerX = 0; // Relative to container
-        const buttonY = 80; // Below cards
-        
-        // Create Play Hand button
-        this.playHandButton = this.scene.add.text(
-            centerX - 250, 
-            buttonY, 
-            'Play Hand', 
-            { 
-                fontSize: '20px',
-                color: '#ffffff',
-                backgroundColor: '#555555',
-                padding: { x: 15, y: 10 }
-            }
-        ).setOrigin(0.5).setInteractive();
-        this.add(this.playHandButton);
-        
-        // Create container for Sort Hand and child buttons
-        this.sortContainer = new GameObjects.Container(this.scene, centerX, buttonY);
-        this.add(this.sortContainer);
-        
-        // Background for sort container
-        const sortBackground = this.scene.add.graphics();
-        sortBackground.fillStyle(0x006600, 1);
-        sortBackground.fillRoundedRect(-80, -30, 160, 60, 10);
-        sortBackground.lineStyle(2, 0xFFFFFF, 1);
-        sortBackground.strokeRoundedRect(-80, -30, 160, 60, 10);
-        this.sortContainer.add(sortBackground);
-        
-        // Sort Hand title
-        const sortTitle = this.scene.add.text(
-            0, 
-            -20, 
-            'Sort Hand', 
-            { 
-                fontSize: '16px',
-                color: '#ffffff'
-            }
-        ).setOrigin(0.5);
-        this.sortContainer.add(sortTitle);
-        
-        // Sort by Rank button
-        this.sortByRankButton = this.scene.add.text(
-            -40, 
-            5, 
-            'Rank', 
-            {
-                fontSize: '14px',
-                color: '#000000',
-                backgroundColor: '#FFA500', // Orange
-                padding: { x: 10, y: 5 }
-            }
-        ).setOrigin(0.5).setInteractive();
-        this.sortContainer.add(this.sortByRankButton);
-        
-        // Sort by Suit button
-        this.sortBySuitButton = this.scene.add.text(
-            40, 
-            5, 
-            'Suit', 
-            {
-                fontSize: '14px',
-                color: '#000000',
-                backgroundColor: '#FFA500', // Orange
-                padding: { x: 10, y: 5 }
-            }
-        ).setOrigin(0.5).setInteractive();
-        this.sortContainer.add(this.sortBySuitButton);
-        
-        // Discard button
-        this.discardButton = this.scene.add.text(
-            centerX + 250, 
-            buttonY, 
-            'Discard', 
-            { 
-                fontSize: '20px',
-                color: '#ffffff',
-                backgroundColor: '#990000',
-                padding: { x: 15, y: 10 }
-            }
-        ).setOrigin(0.5).setInteractive();
-        this.add(this.discardButton);
-
-        
-        // Add event listeners
-        this.playHandButton.on('pointerdown', () => {
-            console.log('Play Hand clicked - to be implemented');
-        });
-        
-
-        this.sortByRankButton.on('pointerdown', () => this.sortByRank());
-        this.sortBySuitButton.on('pointerdown', () => this.sortBySuit());
-        this.discardButton.on('pointerdown', () => this.discardSelectedCards());
     }
 
     private initializeCardViews(): void {
@@ -142,6 +37,7 @@ export class HandView extends GameObjects.Container {
             const cardView = new CardView(this.scene, card);
             cardView.setPosition(0, 0);
             cardView.setOnClickCallback(this.onCardClicked.bind(this));
+            cardView.updateView();
             this.cardViews.push(cardView);
             this.add(cardView);
         });
@@ -162,7 +58,7 @@ export class HandView extends GameObjects.Container {
         }     
     }
 
-    private arrangeCards(animate: boolean = false): void {
+    public arrangeCards(animate: boolean = false): void {
         const totalWidth = (this.cardViews.length - 1) * this.CARD_SPACING;
         const startX = -totalWidth / 2; // Center relative to container
         const baseY = -this.BOTTOM_MARGIN;
@@ -194,27 +90,6 @@ export class HandView extends GameObjects.Container {
         });
     }
 
-    private sortByRank(): void {
-        this.model.sortByRank();
-            this.arrangeCards(true); // Use animation
-    }
-
-    private sortBySuit(): void {
-        this.model.sortBySuit();
-        this.arrangeCards(true); // Use animation
-    }
-
-    private discardSelectedCards(): void {
-        // todo: implement
-        // const discardedCards = this.model.discardSelectedCards();
-
-        // const currentDeck = this.gameplayService.getDeck();
-        // const newCards = currentDeck.drawCards(discardedCards.length);
-        // this.model.addCards(newCards);
-        
-        // this.initializeCardViews();
-    }
-
     /**
      * Update the hand object based on model changes
      */
@@ -226,15 +101,101 @@ export class HandView extends GameObjects.Container {
         this.arrangeCards(false);
     }
 
+    /**
+     * Animate discarding cards by moving them out to the left side of the screen step by step
+     * @param discardedCards Array of CardModel objects to be discarded
+     */
+    public async animateDiscardCards(discardedCards: CardModel[]): Promise<void> {
+        const DISCARD_X = -this.scene.sys.canvas.width; // Target X position off-screen to the left
+        const ANIMATION_DURATION = 300; // Duration per card animation in ms
+
+        // Create a map of card models to card views for quick lookup
+        const discardCardSet = new Set(discardedCards);
+        const cardsToDiscard = this.cardViews.filter(cardView => 
+            discardCardSet.has(cardView.getModel())
+        );
+
+        // Animate each discard sequentially
+        for (const cardView of cardsToDiscard) {
+            await new Promise<void>((resolve) => {
+                this.scene.tweens.add({
+                    targets: cardView,
+                    x: DISCARD_X,
+                    duration: ANIMATION_DURATION,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        // Remove the card view from the array
+                        const index = this.cardViews.indexOf(cardView);
+                        if (index !== -1) {
+                            this.cardViews.splice(index, 1);
+                        }
+                        
+                        // Rearrange remaining cards with animation
+                        this.arrangeCards(true);
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        // Ensure final arrangement is correct
+        this.arrangeCards(false);
+    }
+
+    public async animateDrawCards(deckView: DeckView, cards: CardModel[], delaySeconds: number = 0): Promise<void> {
+        const ANIMATION_DURATION = 300;
+    
+        for (let i = 0; i < cards.length; i++) {
+            const cardView = deckView.popTopCard();
+            
+            if (cardView) {
+                cardView.setModel(cards[i]);
+                cardView.updateView();
+                
+                this.cardViews.push(cardView);
+                this.add(cardView);
+                
+                cardView.setDepth(1000);
+    
+                // Calculate absolute target position
+                const totalWidth = (this.cardViews.length - 1) * this.CARD_SPACING;
+                const startX = -totalWidth / 2;
+                const targetX = this.x + startX + (this.cardViews.indexOf(cardView) * this.CARD_SPACING);
+                const targetY = this.y - this.BOTTOM_MARGIN;
+    
+                // Animate from current position to absolute target position
+                await new Promise<void>((resolve) => {
+                    this.scene.tweens.add({
+                        targets: cardView,
+                        x: targetX,
+                        y: targetY,
+                        duration: ANIMATION_DURATION,
+                        ease: 'Power2',
+                        delay: delaySeconds * 1000 * i,
+                        onStart: () => {
+                            cards[i].setFaceUp(true);
+                            cardView.animateFlip(true);
+                        },
+                        onComplete: () => {
+                            cardView.setDepth(this.cardViews.indexOf(cardView));
+                            resolve();
+                        }
+                    });
+                });
+    
+                this.arrangeCards(true);
+            }
+        }
+    
+        this.arrangeCards(false);
+    }
+
     public getModel(): HandModel {
         return this.model;
     }
 
     public destroy(): void {
         this.cardViews.forEach(view => view.destroy());
-        this.playHandButton.destroy();
-        this.discardButton.destroy();
-        this.sortContainer.destroy();
         super.destroy();
     }
 } 
