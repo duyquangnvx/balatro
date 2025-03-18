@@ -10,6 +10,10 @@ export class BoardController {
     private handView!: HandView;
     private discardPileView!: DiscardPileView;
     private cardViewMap: Map<string, CardView> = new Map();
+    private onPlayAnimationStart?: () => void;
+    private onPlayAnimationComplete?: () => void;
+    private onDiscardAnimationStart?: () => void;
+    private onDiscardAnimationComplete?: () => void;
 
     private board: BoardModel;
 
@@ -98,7 +102,22 @@ export class BoardController {
         }
     }
 
+    public setCallbacks(callbacks: {
+        onPlayAnimationStart?: () => void;
+        onPlayAnimationComplete?: () => void;
+        onDiscardAnimationStart?: () => void;
+        onDiscardAnimationComplete?: () => void;
+    }): void {
+        this.onPlayAnimationStart = callbacks.onPlayAnimationStart;
+        this.onPlayAnimationComplete = callbacks.onPlayAnimationComplete;
+        this.onDiscardAnimationStart = callbacks.onDiscardAnimationStart;
+        this.onDiscardAnimationComplete = callbacks.onDiscardAnimationComplete;
+    }
+
     public async playSelectedCards(): Promise<void> {
+        // Notify animation start
+        this.onPlayAnimationStart?.();
+
         // Get selected cards from hand before playing them
         const selectedCards = this.board.getHand().getSelectedCards();
         const centerY = this.scene.cameras.main.height / 2;
@@ -173,6 +192,9 @@ export class BoardController {
                 await delay(200);
             }
         }
+
+        // Notify animation complete
+        this.onPlayAnimationComplete?.();
     }
 
     /**
@@ -192,6 +214,9 @@ export class BoardController {
     }
 
     public async discardSelectedCards(): Promise<void> {
+        // Notify animation start
+        this.onDiscardAnimationStart?.();
+
         const discardedCards = this.board.discardSelectedCards();
 
         for (const card of discardedCards) {
@@ -219,6 +244,9 @@ export class BoardController {
                 await delay(200);
             }
         }
+
+        // Notify animation complete
+        this.onDiscardAnimationComplete?.();
     }
 
     public async resetGame(): Promise<void> {

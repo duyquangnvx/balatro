@@ -53,6 +53,14 @@ export class GameplayScene extends Scene
         this.boardController = new BoardController(this);
         this.boardController.initBoard();
 
+        // Set up animation callbacks
+        this.boardController.setCallbacks({
+            onPlayAnimationStart: () => this.hidePlayerController(),
+            onPlayAnimationComplete: () => this.showPlayerController(),
+            onDiscardAnimationStart: () => this.hidePlayerController(),
+            onDiscardAnimationComplete: () => this.showPlayerController()
+        });
+
         this.initPlayerController();
 
         // Pass game state to GameStateView
@@ -199,6 +207,30 @@ export class GameplayScene extends Scene
             this.discardButton.setBackgroundColor(`#${GameplayScene.DISCARD_DISABLED_COLOR.toString(16)}`);
             this.discardButton.disableInteractive();
         }
+    }
+
+    private hidePlayerController(): void {
+        // Fade out animation
+        this.tweens.add({
+            targets: this.handControllerContainer,
+            alpha: 0,
+            duration: 200,
+            ease: 'Power1',
+            onComplete: () => {
+                this.handControllerContainer.setVisible(false);
+            }
+        });
+    }
+
+    private showPlayerController(): void {
+        this.handControllerContainer.setVisible(true);
+        // Fade in animation
+        this.tweens.add({
+            targets: this.handControllerContainer,
+            alpha: 1,
+            duration: 200,
+            ease: 'Power1'
+        });
     }
 
     destroy(): void {
