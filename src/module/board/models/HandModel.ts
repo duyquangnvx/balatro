@@ -1,7 +1,7 @@
 import { CardModel } from './CardModel';
 import { Suit } from './types';
 import { Rank } from './types';
-import { BoardConfig } from '../Config';
+import { BoardConfig } from '../../gameplay/Config';
 
 // Enum to track current sort type
 enum SortType {

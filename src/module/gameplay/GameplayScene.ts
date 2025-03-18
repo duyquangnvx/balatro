@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from '../../scenes/SceneKeys';
-import { BoardController } from './BoardController';
+import { BoardController } from '../board/BoardController';
 import { GameStateView } from './views/GameStateView';
 import { GameState } from './models/GameState';
 

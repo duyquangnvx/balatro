@@ -2,14 +2,14 @@
 export { GameplayScene } from './GameplayScene';
 
 // Models
-export { CardModel } from './models/CardModel';
-export { DeckModel } from './models/DeckModel';
-export { HandModel } from './models/HandModel';
-export * from './models/types';
+export { CardModel } from '../board/models/CardModel';
+export { DeckModel } from '../board/models/DeckModel';
+export { HandModel } from '../board/models/HandModel';
+export * from '../board/models/types';
 
 // Logic
-export * from './logic';
+export * from '../board/logic';
 
 // Views
-export { DeckView } from './views/DeckView';
-export { HandView } from './views/HandView'; 
+export { DeckView } from '../board/views/DeckView';
+export { HandView } from '../board/views/HandView'; 

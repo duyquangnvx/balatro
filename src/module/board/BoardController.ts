@@ -1,13 +1,10 @@
-import { GameplayScene } from "./GameplayScene";
+import { Scene } from "phaser";
 import { BoardModel } from "./models/BoardModel";
-import { CardView } from "./views/CardView";
-import { DeckView } from "./views/DeckView";
-import { HandView } from "./views/HandView";
-import { DiscardPileView } from "./views/DiscardPileView";
+import { CardView, DeckView, DiscardPileView, HandView } from "./views";
 import { delay } from "../../Utils";
 
 export class BoardController {
-    private scene: GameplayScene;
+    private scene: Scene;
     private deckView!: DeckView;
     private handView!: HandView;
     private discardPileView!: DiscardPileView;
@@ -23,7 +20,7 @@ export class BoardController {
     private readonly HAND_DEPTH = 200;
     private readonly DISCARD_DEPTH = 100;
 
-    constructor(scene: GameplayScene) {
+    constructor(scene: Scene) {
         this.scene = scene;
         this.board = new BoardModel();
     }

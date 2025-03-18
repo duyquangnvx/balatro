@@ -1,7 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { CardModel } from '../models/CardModel';
 import { AssetManager } from '../../../managers/AssetManager';
-import { HandView } from './HandView';
 
 /**
  * CardView - UI representation of a Card model
@@ -18,7 +17,6 @@ export class CardView extends GameObjects.Container {
     private flipAnimation?: Phaser.Tweens.Tween;
     private moveAnimation?: Phaser.Tweens.Tween;
     private rotateAnimation?: Phaser.Tweens.Tween;
-    private handView?: HandView;
     private onClickCallback: ((cardView: CardView) => void) | null;
 
     private static readonly LIFT_UP_OFFSET = 20;
@@ -74,13 +72,6 @@ export class CardView extends GameObjects.Container {
         
         // Add container to scene
         scene.add.existing(this);
-    }
-
-    /**
-     * Set the hand object reference
-     */
-    public setHandObject(handView: HandView): void {
-        this.handView = handView;
     }
 
     public setOnClickCallback(callback: ((cardView: CardView) => void) | null): void {
@@ -308,23 +299,6 @@ export class CardView extends GameObjects.Container {
             this.rotateAnimation.stop();
             this.rotateAnimation = undefined;
         }
-    }
-
-    public setPosition(x: number, y: number): this {
-        super.setPosition(x, y);
-        
-        // Check if card is currently selected
-        if (this.handView) {
-            const handModel = this.handView.getModel();
-            const isSelected = handModel.isCardSelected(this.model) || false;
-
-            // If card is selected, apply lift animation
-            if (isSelected && this.liftAnimation === undefined) {
-                this.liftUp();
-            }
-        }
-        
-        return this;
     }
 
     /**
