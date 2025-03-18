@@ -302,6 +302,60 @@ export class CardView extends GameObjects.Container {
     }
 
     /**
+     * Animate score text appearing above the card
+     * @param score The score to display (e.g. "+10")
+     * @returns Promise that resolves when the animation is complete
+     */
+    public async animateScore(score: number): Promise<void> {
+        const scoreText = this.scene.add.text(
+            this.x,
+            this.y - this.height / 2,
+            `+${score}`,
+            {
+                fontSize: '32px',
+                color: '#FFD700',
+                stroke: '#000000',
+                strokeThickness: 4,
+                fontStyle: 'bold'
+            }
+        );
+        scoreText.setOrigin(0.5);
+        scoreText.setScale(0);
+
+        // Scale up animation
+        await new Promise<void>((resolve) => {
+            this.scene.tweens.add({
+                targets: scoreText,
+                scaleX: 1,
+                scaleY: 1,
+                y: this.y - this.height,
+                duration: 300,
+                ease: 'Back.easeOut',
+                onComplete: () => resolve()
+            });
+        });
+
+        // Hold for a moment
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Scale down and fade out
+        await new Promise<void>((resolve) => {
+            this.scene.tweens.add({
+                targets: scoreText,
+                scaleX: 0,
+                scaleY: 0,
+                alpha: 0,
+                duration: 300,
+                ease: 'Back.easeIn',
+                onComplete: () => {
+                    scoreText.destroy();
+                    resolve();
+                }
+            });
+        });
+    }
+
+    /**
      * Update the card view based on model changes
      */
     public updateView(): void {

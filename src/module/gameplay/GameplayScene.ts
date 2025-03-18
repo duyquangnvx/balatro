@@ -46,8 +46,8 @@ export class GameplayScene extends Scene
         this.gameState = new GameState(
             1000,  // Initial money
             300,   // Required score
-            3,     // Max discards
-            1      // Max plays
+            4,     // Max discards
+            4      // Max plays
         );
 
         this.boardController = new BoardController(this);

@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { BoardModel } from "./models/BoardModel";
 import { CardView, DeckView, DiscardPileView, HandView } from "./views";
 import { delay } from "../../Utils";
+import { CardModel } from "./models/CardModel";
 
 export class BoardController {
     private scene: Scene;
@@ -98,9 +99,96 @@ export class BoardController {
     }
 
     public async playSelectedCards(): Promise<void> {
+        // Get selected cards from hand before playing them
+        const selectedCards = this.board.getHand().getSelectedCards();
+        const centerY = this.scene.cameras.main.height / 2;
+        const cardViews: CardView[] = [];
+
+        // Collect all selected card views
+        for (const card of selectedCards) {
+            const cardView = this.getCardViewByCardId(card.id);
+            if (cardView) {
+                cardViews.push(cardView);
+            }
+        }
+
+        // Sort card views by x position (left to right)
+        cardViews.sort((a, b) => a.x - b.x);
+
+        // Calculate positions for centered arrangement
+        const cardWidth = cardViews[0].width;
+        const spacing = cardWidth + 20; // 20px gap between cards
+        const totalWidth = spacing * (cardViews.length - 1) + cardWidth;
+        const startX = (this.scene.cameras.main.width - totalWidth) / 2;
+
+        // 1. Animate all cards moving up to center screen
+        for (let i = 0; i < cardViews.length; i++) {
+            const cardView = cardViews[i];
+            const targetX = startX + (spacing * i);
+            
+            // Remove from hand and animate moving up
+            this.handView.removeCardView(cardView);
+            cardView.animateMoveTo(targetX, centerY);
+            await delay(100); // Small delay between each card moving up
+        }
+
+        // Wait for all cards to finish moving up
+        await delay(400);
+
+        // 2. Animate scores for all cards
+        for (const cardView of cardViews) {
+            const score = this.calculateCardScore(cardView.getModel());
+            cardView.animateScore(score);
+            await delay(100); // Small delay between each score animation
+        }
+
+        // Wait for score animations to complete
+        await delay(800);
+
+        // 3. Animate all cards to discard pile
+        for (const cardView of cardViews) {
+            this.discardPileView.addCardView(cardView);
+            cardView.animateFlip(false);
+            this.discardPileView.animateDiscardCard(cardView);
+            await delay(100); // Small delay between each discard animation
+        }
+
+        // Execute the play action after animations
         this.board.playSelectedCards();
 
- 
+        // Rearrange remaining cards in hand
+        this.handView.animateArrangeCards(false);
+        await delay(200);
+
+        // 4. Draw new cards from deck
+        const newCards = this.board.drawCards(selectedCards.length);
+        for (const card of newCards) {
+            const cardView = this.getCardViewByCardId(card.id);
+            if (cardView) {
+                cardView.setModel(card);
+                cardView.animateFlip(true);   // CardView will updateView() on animateFlip()
+                
+                this.handView.addCardView(cardView);
+                this.handView.animateDrawCard(cardView);
+                await delay(200);
+            }
+        }
+    }
+
+    /**
+     * Calculate score for a card (demo implementation)
+     * @param card The card to calculate score for
+     * @returns The score value
+     */
+    private calculateCardScore(card: CardModel): number {
+        const rank = card.getRank();
+        switch (rank) {
+            case 'A': return 11;
+            case 'K':
+            case 'Q':
+            case 'J': return 10;
+            default: return parseInt(rank) || 0;
+        }
     }
 
     public async discardSelectedCards(): Promise<void> {
