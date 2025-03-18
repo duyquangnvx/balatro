@@ -1,46 +1,51 @@
 import { Scene, GameObjects } from 'phaser';
 import { CardModel } from '../models/CardModel';
 import { AssetManager } from '../../../managers/AssetManager';
-import { GameplayService } from '../GameplayService';
 import { HandView } from './HandView';
 
 /**
  * CardView - UI representation of a Card model
  */
 export class CardView extends GameObjects.Container {
-    private gameplayService: GameplayService;
     private model: CardModel;
     private faceSprite: GameObjects.Sprite;
     private backSprite: GameObjects.Sprite;
     private enhancementSprite: GameObjects.Sprite;
+    private cardContainer: GameObjects.Container;
     private shakeAnimation?: Phaser.Tweens.Tween;
     private zoomAnimation?: Phaser.Tweens.Tween;
     private liftAnimation?: Phaser.Tweens.Tween;
     private flipAnimation?: Phaser.Tweens.Tween;
+    private moveAnimation?: Phaser.Tweens.Tween;
+    private rotateAnimation?: Phaser.Tweens.Tween;
     private handView?: HandView;
-    private originalY: number = 0;
+    private onClickCallback: ((cardView: CardView) => void) | null;
 
-    private onClickCallback: (cardView: CardView) => void;
+    private static readonly LIFT_UP_OFFSET = 20;
+    private static readonly FLIP_DURATION = 300;
 
     constructor(scene: Scene, model: CardModel) {
         super(scene, 0, 0);
         this.model = model;
-        this.gameplayService = GameplayService.getInstance();
+        
+        // Create a child container to hold all card elements
+        this.cardContainer = scene.add.container(0, 0);
+        this.add(this.cardContainer);
         
         // Initialize enhancement sprite first (below the card face)
         this.enhancementSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
         this.enhancementSprite.setVisible(false);
-        this.add(this.enhancementSprite);
+        this.cardContainer.add(this.enhancementSprite);
         
         // Initialize face sprite (initially hidden)
         this.faceSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.CARDS, this.getFaceCardFrame());
         this.faceSprite.setVisible(false); // Hide initially
-        this.add(this.faceSprite);
+        this.cardContainer.add(this.faceSprite);
         
         // Initialize back sprite
         this.backSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.DECK, this.getCardBackFrame());
         this.backSprite.setVisible(true); // Show initially
-        this.add(this.backSprite);
+        this.cardContainer.add(this.backSprite);
         
         // Scale enhancement sprite to match card size
         this.enhancementSprite.setScale(this.faceSprite.width / this.enhancementSprite.width);
@@ -66,6 +71,9 @@ export class CardView extends GameObjects.Container {
         this.on('pointerover', this.onPointerOver, this);
         this.on('pointerout', this.onPointerOut, this);
         this.on('pointerdown', this.onClick, this);
+        
+        // Add container to scene
+        scene.add.existing(this);
     }
 
     /**
@@ -75,7 +83,7 @@ export class CardView extends GameObjects.Container {
         this.handView = handView;
     }
 
-    public setOnClickCallback(callback: (cardView: CardView) => void): void {
+    public setOnClickCallback(callback: ((cardView: CardView) => void) | null): void {
         this.onClickCallback = callback;
     }
 
@@ -107,7 +115,7 @@ export class CardView extends GameObjects.Container {
 
         // Create a new zoom animation
         this.zoomAnimation = this.scene.tweens.add({
-            targets: this,
+            targets: this.cardContainer,
             scaleX: 1.05,
             scaleY: 1.05,
             duration: 100,
@@ -123,7 +131,7 @@ export class CardView extends GameObjects.Container {
         
         // Reset scale
         this.scene.tweens.add({
-            targets: this,
+            targets: this.cardContainer,
             scaleX: 1,
             scaleY: 1,
             duration: 100,
@@ -137,16 +145,11 @@ export class CardView extends GameObjects.Container {
     public liftUp(): void {
         // Stop any existing lift animation
         this.stopLift();
-        
-        // Store original Y position if not already stored
-        if (this.originalY === 0) {
-            this.originalY = this.y + 20; // Add offset since the card might already be lifted
-        }
-        
+
         // Create a new lift animation
         this.liftAnimation = this.scene.tweens.add({
-            targets: this,
-            y: this.originalY - 20, // Lift up by 20 pixels
+            targets: this.cardContainer,
+            y: -CardView.LIFT_UP_OFFSET,
             duration: 200,
             ease: 'Back.easeOut'
         });
@@ -159,15 +162,10 @@ export class CardView extends GameObjects.Container {
         // Stop any existing lift animation
         this.stopLift();
         
-        // Ensure we have a valid originalY
-        if (this.originalY === 0) {
-            this.originalY = this.y; // Use current Y as base if not set
-        }
-        
         // Create a new lower animation
         this.liftAnimation = this.scene.tweens.add({
-            targets: this,
-            y: this.originalY,
+            targets: this.cardContainer,
+            y: 0,
             duration: 200,
             ease: 'Back.easeIn'
         });
@@ -189,8 +187,8 @@ export class CardView extends GameObjects.Container {
 
         // Create a new shake animation
         this.shakeAnimation = this.scene.tweens.add({
-            targets: this,
-            x: this.x - 5,
+            targets: this.cardContainer,
+            x: -5,
             duration: 50,
             yoyo: true,
             repeat: 1,
@@ -210,17 +208,12 @@ export class CardView extends GameObjects.Container {
     /**
      * Animate flipping the card to a specific face
      * @param faceUp True to flip to face up, false to flip to face down
-     * @param duration Duration of the flip animation in milliseconds (default: 300)
+     * @param delay The delay time in milliseconds before the animation starts
      * @returns Promise that resolves when the flip animation is complete
      */
-    public async animateFlip(faceUp: boolean, duration: number = 300): Promise<void> {
+    public async animateFlip(faceUp: boolean, delay: number = 0): Promise<void> {
         // Stop any existing flip animation
         this.stopFlip();
-
-        // If already in the target state, resolve immediately
-        if (this.model.isFaceUp() === faceUp) {
-            return Promise.resolve();
-        }
 
         return new Promise((resolve) => {
             // Ensure card is not interactive during animation
@@ -228,10 +221,11 @@ export class CardView extends GameObjects.Container {
 
             // First half of flip: shrink
             this.flipAnimation = this.scene.tweens.add({
-                targets: this,
+                targets: this.cardContainer,
                 scaleX: 0,
-                duration: duration / 2,
+                duration: CardView.FLIP_DURATION / 2,
                 ease: 'Power2',
+                delay: delay,
                 onComplete: () => {
                     // Set the specified face state at midpoint
                     this.model.setFaceUp(faceUp);
@@ -239,9 +233,9 @@ export class CardView extends GameObjects.Container {
 
                     // Second half of flip: expand
                     this.flipAnimation = this.scene.tweens.add({
-                        targets: this,
+                        targets: this.cardContainer,
                         scaleX: 1,
-                        duration: duration / 2,
+                        duration: CardView.FLIP_DURATION / 2,
                         ease: 'Power2',
                         onComplete: () => {
                             // Clean up
@@ -263,37 +257,72 @@ export class CardView extends GameObjects.Container {
             this.flipAnimation.stop();
             this.flipAnimation = undefined;
             // Reset scale to normal if interrupted
-            this.scaleX = 1;
+            this.cardContainer.scaleX = 1;
             this.setInteractive(true);
         }
     }
+    
+
+    public async animateMoveTo(targetX: number, targetY: number, duration: number = 500): Promise<void> {
+        this.stopMove();
         
-    public setPosition(x: number, y: number): this {
-        // Store original Y position for animation reference if not already set
-        if (this.originalY === 0) {
-            this.originalY = y;
+        return new Promise<void>((resolve) => {
+            this.moveAnimation = this.scene.tweens.add({
+                targets: this,
+                x: targetX,
+                y: targetY,
+                duration: duration,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    public async animateRotateTo(targetRotation: number, duration: number = 500): Promise<void> {
+        this.stopRotate();
+
+        return new Promise<void>((resolve) => {
+            this.rotateAnimation = this.scene.tweens.add({
+                targets: this.cardContainer,
+                rotation: targetRotation,
+                duration: duration,
+                ease: 'Cubic.easeOut',
+                onComplete: () => {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    public stopMove(): void {
+        if (this.moveAnimation) {
+            this.moveAnimation.stop();
+            this.moveAnimation = undefined;
         }
+    }
+
+    private stopRotate(): void {
+        if (this.rotateAnimation) {
+            this.rotateAnimation.stop();
+            this.rotateAnimation = undefined;
+        }
+    }
+
+    public setPosition(x: number, y: number): this {
+        super.setPosition(x, y);
         
         // Check if card is currently selected
         if (this.handView) {
             const handModel = this.handView.getModel();
             const isSelected = handModel.isCardSelected(this.model) || false;
 
-            // If card is selected, adjust the y position to maintain the lifted state
-       
-            const adjustedY = isSelected ? y - 20 : y;
-            // Set position with potentially adjusted Y
-            super.setPosition(x, adjustedY);
-
-            // Check if card is already selected and apply animation if this is the first positioning
+            // If card is selected, apply lift animation
             if (isSelected && this.liftAnimation === undefined) {
                 this.liftUp();
             }
-
-            return this;
         }
-
-        super.setPosition(x, y);
         
         return this;
     }
@@ -322,12 +351,12 @@ export class CardView extends GameObjects.Container {
         return this.model;
     }
 
-       /**
+    /**
      * Get the frame name for the face-up card (from CARDS atlas)
      * @returns The frame name for the face-up card
      */
-       private getFaceCardFrame(): string {
-        return `${this.model.suit}_${this.model.rank}.png`;
+    private getFaceCardFrame(): string {
+        return `${this.model.getSuit()}_${this.model.getRank()}.png`;
     }
 
     /**
@@ -351,6 +380,9 @@ export class CardView extends GameObjects.Container {
         this.stopShake();
         this.stopZoom();
         this.stopLift();
+        this.stopMove();
+        this.stopRotate();
+        this.stopFlip();
         super.destroy();
     }
 } 

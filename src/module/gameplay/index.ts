@@ -1,5 +1,4 @@
 // Main service and scene
-export { GameplayService } from './GameplayService';
 export { GameplayScene } from './GameplayScene';
 
 // Models

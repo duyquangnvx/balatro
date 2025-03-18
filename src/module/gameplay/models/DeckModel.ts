@@ -5,75 +5,56 @@ import { DeckStyle, Rank, Suit } from './types';
  * Deck model class - Contains deck data and business logic
  */
 export class DeckModel {
-    private cards: CardModel[];
-    private totalCards: number = 52;
-    private discardedCards: number = 0;
+    private remainingCards: CardModel[];
+    private totalCards: number;
     private currentStyle: DeckStyle;
 
     constructor() {
-        this.cards = [];
-        this.discardedCards = 0;
+        this.remainingCards = [];
+        this.totalCards = 0;
         this.currentStyle = DeckStyle.RED; // Default style
-        
-        // Initialize the deck
-        this.initializeDeck();
     }
 
-    private initializeDeck(): void {
-         // Clear existing cards
-         this.cards = [];
-        
-         // Create all 52 cards
-         Object.values(Suit).forEach(suit => {
-             Object.values(Rank).forEach(rank => {
-                 const card = new CardModel(suit, rank);
-                 card.setDeckReference(this);
-                 this.cards.push(card);
-             });
-         });
+    public setCards(cards: CardModel[]) {
+        this.remainingCards = cards;
+        this.totalCards = cards.length;
+    }
+
+    public addCards(cards: CardModel[]): void {
+        this.remainingCards.push(...cards);
+        this.totalCards += cards.length;
+    }
+
+    public addCard(card: CardModel): void {
+        this.remainingCards.push(card);
+        this.totalCards++;
     }
 
     public shuffle(): void {
-        for (let i = this.cards.length - 1; i > 0; i--) {
+        for (let i = this.remainingCards.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+            [this.remainingCards[i], this.remainingCards[j]] = [this.remainingCards[j], this.remainingCards[i]];
         }
     }
 
     public drawCard(): CardModel | undefined {
-        if (this.cards.length === 0) {
+        if (this.remainingCards.length === 0) {
             console.log("Deck is empty!");
             return undefined;
         }
         
-        const card = this.cards.pop();
-        if (card) {
-            this.discardedCards++; // Increment discarded count when card is drawn
-        }
-        
-        return card;
+        return this.remainingCards.pop();
     }
 
     public drawCards(count: number): CardModel[] {
         const drawnCards: CardModel[] = [];
-        for (let i = 0; i < count && this.cards.length > 0; i++) {
+        for (let i = 0; i < count && this.remainingCards.length > 0; i++) {
             const card = this.drawCard();
             if (card) {
                 drawnCards.push(card);
             }
         }
         return drawnCards;
-    }
-
-    public returnCard(card: CardModel): void {
-        // Flip card face down
-        card.setFaceUp(false);
-        
-        // Ensure card references this deck
-        card.setDeckReference(this);
-        
-        // Add card back to deck
-        this.cards.push(card);
     }
 
     public getDeckStyle(): DeckStyle {
@@ -84,24 +65,20 @@ export class DeckModel {
         this.currentStyle = style;
     }
 
-    public getDiscardedCount(): number {
-        return this.discardedCards;
+    public getRemainingCards(): CardModel[] {
+        return this.remainingCards;
     }
 
-    public getRemainingCards(): number {
-        return this.cards.length;
+    public getRemainingCardsCount(): number {
+        return this.remainingCards.length;
     }
 
-    public getTotalCardsInPlay(): number {
-        return this.totalCards - this.discardedCards;
+    public getTotalCards(): number {
+        return this.totalCards;
     }
     
-    public destroy(): void {
-        // No resources to clean up in the model
-        this.cards = [];
-    }
-
-    public getCards(): CardModel[] {
-        return [...this.cards];
+    public clear(): void {
+        this.remainingCards = [];
+        this.totalCards = 0;
     }
 } 

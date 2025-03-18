@@ -4,9 +4,10 @@ import { ICard, Suit, Rank, Enhancement, DeckStyle } from './types';
  * Card model class - Contains card data and business logic
  */
 export class CardModel implements ICard {
-    public suit: Suit;
-    public rank: Rank;
-    public value: number;
+    public readonly id: string;
+    public readonly suit: Suit;
+    public readonly rank: Rank;
+    public readonly value: number;
     public faceUp: boolean;
     private enhancement: Enhancement = Enhancement.NORMAL;
     
@@ -14,6 +15,7 @@ export class CardModel implements ICard {
     private deckReference: any = null;
 
     constructor(suit: Suit, rank: Rank) {
+        this.id = crypto.randomUUID();
         this.suit = suit;
         this.rank = rank;
         this.faceUp = false;

@@ -1,55 +1,28 @@
-import { Scene, GameObjects } from 'phaser';
+import { Scene } from 'phaser';
 import { HandModel } from '../models/HandModel';
 import { CardView } from './CardView';
-import { GameplayService } from '../GameplayService';
-import { CardModel } from '../models/CardModel';
-import { DeckView } from './DeckView';
+import { CardViewsContainer } from './CardViewsContainer';
 
 /**
  * HandView - UI representation of a Hand model
  */
-export class HandView extends GameObjects.Container {
-    private gameplayService: GameplayService;
+export class HandView extends CardViewsContainer {
     private model: HandModel;
-    private cardViews: CardView[] = [];
     private readonly CARD_SPACING = 80;
-    private readonly BOTTOM_MARGIN = 200;
+    private readonly ARRANGE_DURATION = 200;
+    private readonly DRAW_DURATION = 200;
+    private readonly HAND_DEPTH: number;
 
-    constructor(scene: Scene, model: HandModel) {
-        super(scene);
-        
+    constructor(scene: Scene, model: HandModel, cardAreaX: number, cardAreaY: number, depth: number) {
+        super(scene, cardAreaX, cardAreaY);
         this.model = model;
-        this.gameplayService = GameplayService.getInstance();
-        
-        // Initialize card views
-        this.initializeCardViews();
-
-        scene.add.existing(this);
+        this.HAND_DEPTH = depth;
     }
 
-    private initializeCardViews(): void {
-        // Clear existing card views
-        this.cardViews.forEach(view => view.destroy());
-        this.cardViews = [];
-        
-        // Create new card views for each card in the model
-        this.model.getCards().forEach(card => {
-            const cardView = new CardView(this.scene, card);
-            cardView.setPosition(0, 0);
-            cardView.setOnClickCallback(this.onCardClicked.bind(this));
-            cardView.updateView();
-            this.cardViews.push(cardView);
-            this.add(cardView);
-        });
-        
-        // Arrange cards
-        this.arrangeCards();
-    }
-
-    private onCardClicked(cardView: CardView): void {
-        const cardModel = cardView.getModel();
-        const wasSelected = this.model.isCardSelected(cardModel);
-        this.model.toggleCardSelection(cardModel);
+    protected override onCardClicked(cardView: CardView): void {
+        const card = cardView.getModel();
+        const wasSelected = this.model.isCardSelected(card);
+        this.model.toggleCardSelection(card);
         
         if (wasSelected) {
             cardView.lowerDown();
@@ -58,144 +31,85 @@ export class HandView extends GameObjects.Container {
         }     
     }
 
-    public arrangeCards(animate: boolean = false): void {
-        const totalWidth = (this.cardViews.length - 1) * this.CARD_SPACING;
-        const startX = -totalWidth / 2; // Center relative to container
-        const baseY = -this.BOTTOM_MARGIN;
-
-        this.cardViews.forEach((cardView, index) => {
-            // Find the card object for this card
-            const x = startX + (index * this.CARD_SPACING);
-            const y = baseY;
-            
-            if (animate) {
-                // For animation, only animate the X position to avoid interfering with lift animation
-                this.scene.tweens.add({
-                    targets: cardView,
-                    x: x,
-                    duration: 300,
-                    ease: 'Back.easeOut',
-                    onComplete: () => {
-                        // After animation completes, ensure the Y position is correct
-                        // This will respect the card's selected state
-                        cardView.setPosition(cardView.x, y);
-                    }
-                });
-            } else {
-                // Immediately set position without animation
-                cardView.setPosition(x, y);
-            }
-            
-            cardView.setDepth(index); // Ensure proper layering
-        });
+    public override addCardView(cardView: CardView): void {
+        super.addCardView(cardView);
+        this.sortCardViews();
     }
 
     /**
      * Update the hand object based on model changes
      */
     public updateView(): void {
-        // Update all card views
-        this.cardViews.forEach(view => view.updateView());
+        this.updateCardViews();
         
+        this.sortCardViews();
+
         // Rearrange cards without animation for regular updates
-        this.arrangeCards(false);
+        this.arrangeCards();
     }
 
-    /**
-     * Animate discarding cards by moving them out to the left side of the screen step by step
-     * @param discardedCards Array of CardModel objects to be discarded
-     */
-    public async animateDiscardCards(discardedCards: CardModel[]): Promise<void> {
-        const DISCARD_X = -this.scene.sys.canvas.width; // Target X position off-screen to the left
-        const ANIMATION_DURATION = 300; // Duration per card animation in ms
+    public sortCardViews(): void {
+        const cards = this.model.getCards();
+        const sortedCardViews = this.cardViews.sort((a, b) => {
+            const indexA = cards.indexOf(a.getModel());
+            const indexB = cards.indexOf(b.getModel());
+            return indexA - indexB;
+        });
+        this.cardViews = sortedCardViews;
+    }
 
-        // Create a map of card models to card views for quick lookup
-        const discardCardSet = new Set(discardedCards);
-        const cardsToDiscard = this.cardViews.filter(cardView => 
-            discardCardSet.has(cardView.getModel())
-        );
+    public arrangeCards(): void {
+        this.cardViews.forEach((cardView, index) => {
+            const { targetX, targetY, targetRotation, depth } = this.getCardPropsInView(cardView);  
+            cardView.setPosition(targetX, targetY);
+            cardView.setDepth(depth);
+            cardView.setRotation(targetRotation);
+        });
+    }
 
-        // Animate each discard sequentially
-        for (const cardView of cardsToDiscard) {
-            await new Promise<void>((resolve) => {
-                this.scene.tweens.add({
-                    targets: cardView,
-                    x: DISCARD_X,
-                    duration: ANIMATION_DURATION,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        // Remove the card view from the array
-                        const index = this.cardViews.indexOf(cardView);
-                        if (index !== -1) {
-                            this.cardViews.splice(index, 1);
-                        }
-                        
-                        // Rearrange remaining cards with animation
-                        this.arrangeCards(true);
-                        resolve();
-                    }
-                });
-            });
+    public async animateArrangeCards(useRotation: boolean = true): Promise<void> {
+        const animatePromises = this.cardViews.map(cardView => {
+            const { targetX, targetY, targetRotation, depth } = this.getCardPropsInView(cardView);
+            cardView.setDepth(depth);
+
+            return Promise.all([
+                useRotation ? cardView.animateRotateTo(targetRotation, this.ARRANGE_DURATION) : Promise.resolve(),
+                cardView.animateMoveTo(targetX, targetY, this.ARRANGE_DURATION)
+            ]);
+        });
+
+        await Promise.all(animatePromises);
+    }
+
+    public async animateDrawCard(cardView: CardView): Promise<void> {  
+        const { targetX, targetY, targetRotation, depth } = this.getCardPropsInView(cardView);
+        cardView.setDepth(depth);
+
+        await Promise.all([    
+            this.animateArrangeCards(false),
+            cardView.animateRotateTo(targetRotation, this.DRAW_DURATION),
+            cardView.animateMoveTo(targetX, targetY, this.DRAW_DURATION)
+        ]);
+    }
+
+    private getCardPropsInView(cardView: CardView): {targetX: number, targetY: number, targetRotation: number, depth: number} {
+        const index = this.cardViews.indexOf(cardView);
+
+        const totalWidth = (this.cardViews.length - 1) * this.CARD_SPACING;
+        const startX = this.cardAreaX - totalWidth / 2; // Center relative to container
+        const baseY = this.cardAreaY;
+        const targetX = startX + (index * this.CARD_SPACING);
+        const targetY = baseY;
+
+        return {
+            targetX,
+            targetY,
+            targetRotation: Math.PI,
+            depth: index + this.HAND_DEPTH
         }
-
-        // Ensure final arrangement is correct
-        this.arrangeCards(false);
-    }
-
-    public async animateDrawCards(deckView: DeckView, cards: CardModel[], delaySeconds: number = 0): Promise<void> {
-        const ANIMATION_DURATION = 300;
-    
-        for (let i = 0; i < cards.length; i++) {
-            const cardView = deckView.popTopCard();
-            
-            if (cardView) {
-                cardView.setModel(cards[i]);
-                cardView.updateView();
-                
-                this.cardViews.push(cardView);
-                this.add(cardView);
-                
-                cardView.setDepth(1000);
-    
-                // Calculate absolute target position
-                const totalWidth = (this.cardViews.length - 1) * this.CARD_SPACING;
-                const startX = -totalWidth / 2;
-                const targetX = this.x + startX + (this.cardViews.indexOf(cardView) * this.CARD_SPACING);
-                const targetY = this.y - this.BOTTOM_MARGIN;
-    
-                // Animate from current position to absolute target position
-                await new Promise<void>((resolve) => {
-                    this.scene.tweens.add({
-                        targets: cardView,
-                        x: targetX,
-                        y: targetY,
-                        duration: ANIMATION_DURATION,
-                        ease: 'Power2',
-                        delay: delaySeconds * 1000 * i,
-                        onStart: () => {
-                            cards[i].setFaceUp(true);
-                            cardView.animateFlip(true);
-                        },
-                        onComplete: () => {
-                            cardView.setDepth(this.cardViews.indexOf(cardView));
-                            resolve();
-                        }
-                    });
-                });
-    
-                this.arrangeCards(true);
-            }
-        }
-    
-        this.arrangeCards(false);
-    }
+    }   
 
     public getModel(): HandModel {
         return this.model;
-    }
-
-    public destroy(): void {
-        this.cardViews.forEach(view => view.destroy());
-        super.destroy();
     }
 } 

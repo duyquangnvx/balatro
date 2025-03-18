@@ -1,111 +1,99 @@
-import { Scene, GameObjects } from 'phaser';
+import { Scene } from 'phaser';
 import { DeckModel } from '../models/DeckModel';
-import { CardModel } from '../models/CardModel';
 import { CardView } from './CardView';
-import { GameplayService } from '../GameplayService';
+import { CardViewsContainer } from './CardViewsContainer';
+import { delay } from '../../../Utils';
 
 /**
  * DeckView - UI representation of a Deck model
  */
-export class DeckView extends GameObjects.Container {
-    private gameplayService: GameplayService;
+export class DeckView extends CardViewsContainer {
     private model: DeckModel;
     private deckText: Phaser.GameObjects.Text;
-    private cardViews: CardView[] = [];
 
-    constructor(scene: Scene, model: DeckModel) { 
-        // Initialize container at deck position
-        super(scene);
-        
+    private readonly DECK_DEPTH: number = 0;
+    private readonly RETURN_DURATION: number = 400;
+    constructor(scene: Scene, model: DeckModel, cardAreaX: number, cardAreaY: number, depth: number) { 
+        super(scene, cardAreaX, cardAreaY);
         this.model = model;
-        this.gameplayService = GameplayService.getInstance();
-        
+        this.DECK_DEPTH = depth;
+
         // Create deck count text
         this.deckText = scene.add.text(
-            40, // Relative to container position
-            105, // Below the deck
+            cardAreaX + 40, // Relative to deck position
+            cardAreaY + 105, // Below the deck
             "0/52", 
             { 
                 fontSize: '18px', 
                 color: '#ffffff' 
             }
-        ).setOrigin(0.5).setDepth(100);
-        this.add(this.deckText);
-        
-        // Initialize card views
-        this.initializeCardViews();
-        
-        // Add container to scene
-        scene.add.existing(this);
-    }
-
-    private initializeCardViews(): void {
-        // Clear existing card views
-        this.cardViews.forEach(view => view.destroy());
-        this.cardViews = [];
-        
-        // Create new card views for each card in the model
-        this.model.getCards().forEach((cardModel, index) => {
-            const cardView = new CardView(this.scene, cardModel);
-            cardView.setPosition(this.x, this.y);
-            cardView.setOnClickCallback(this.onCardClicked.bind(this));
-            this.cardViews.push(cardView);
-            this.add(cardView);
-        });
-        
-        this.applyDeck3DEffect();
-        this.updateDeckCount();
-    }
-
-    private onCardClicked(cardView: CardView): void {
-        console.log('Card clicked:', cardView.getModel());
-    }
-
-    private applyDeck3DEffect(): void {
-        // Only apply effect to the last 10 cards (top of the deck)
-        const startIndex = Math.max(0, this.cardViews.length - 15);
-        
-        for (let i = startIndex; i < this.cardViews.length; i++) {
-            // Calculate how far this card is from the bottom of the visible stack (0-9)
-            const stackPosition = i - startIndex;
-            
-            // Calculate offset based on position in the stack
-            const offsetX = stackPosition * 0.5;
-            const offsetY = -stackPosition * 0.5;
-            
-            // Calculate rotation based on position in the stack
-            const rotation = stackPosition * 0.2 * (Math.PI / 180);
-            
-            // Apply position and rotation
-            this.cardViews[i].setPosition(this.x + offsetX, this.y + offsetY);
-            this.cardViews[i].setRotation(rotation);
-            this.cardViews[i].setDepth(i);
-        }
-    }
-
-    private updateDeckCount(): void {
-        const count = this.model.getRemainingCards();
-        const total = this.model.getTotalCardsInPlay();
-        this.deckText.setText(`${count}/${total}`);
+        ).setOrigin(0.5).setDepth(this.DECK_DEPTH);
     }
 
     /**
      * Update the deck object based on model changes
      */
     public updateView(): void {
-        // Update all card views
-        this.cardViews.forEach(view => view.updateView());
+        this.updateCardViews();
 
         this.updateDeckCount();
-        this.applyDeck3DEffect();
+        this.arrangeCards();
+    }
+
+    private updateDeckCount(): void {
+        const count = this.cardViews.length;
+        const total = this.model.getTotalCards();
+        this.deckText.setText(`${count}/${total}`);
+    }
+
+    // Apply 3D effect to the cards
+    public arrangeCards(): void {
+        this.cardViews.forEach((cardView, index) => {
+            const { targetX, targetY, targetRotation, depth } = this.getCardPropsInView(cardView);
+            cardView.setPosition(targetX, targetY);
+            cardView.setRotation(targetRotation);
+            cardView.setDepth(depth);
+        });
+    }
+
+    public async animateArrangeCards(): Promise<void> {
+        this.cardViews.forEach(async (cardView, index) => {
+            this.animateReturnCard(cardView);
+            await delay(100);
+        });
+    }
+
+    public async animateReturnCard(cardView: CardView): Promise<void> {
+        if (!this.hasCardView(cardView)) {
+            return;
+        }
+        
+        const { targetX, targetY, targetRotation, depth } = this.getCardPropsInView(cardView);
+        cardView.setDepth(depth);
+
+        await Promise.all([
+            cardView.animateFlip(false),
+            cardView.animateMoveTo(targetX, targetY, this.RETURN_DURATION),
+            cardView.animateRotateTo(targetRotation, this.RETURN_DURATION)
+        ]);  
+    }
+
+    private getCardPropsInView(cardView: CardView): {targetX: number, targetY: number, targetRotation: number, depth: number} {
+        const index = this.cardViews.indexOf(cardView);
+        const offsetX = index * 0.25;
+        const offsetY = -index * 0.25;
+        return {
+            targetX: this.cardAreaX + offsetX,
+            targetY: this.cardAreaY + offsetY,
+            targetRotation: 0,
+            depth: index + this.DECK_DEPTH
+        }
     }
 
     public popTopCard(): CardView | undefined {
         const cardView = this.cardViews.pop();
         if (cardView) {
-            this.remove(cardView);
-            cardView.setDepth(0); // Reset depth về 0 khi rời DeckView
-            this.applyDeck3DEffect();
+            // Card is already in the scene, no need to remove from container
             this.updateDeckCount();
         }
         return cardView;
@@ -116,8 +104,7 @@ export class DeckView extends GameObjects.Container {
     }
 
     public destroy(): void {
-        this.cardViews.forEach(view => view.destroy());
-        this.deckText.destroy();
         super.destroy();
+        this.deckText.destroy();
     }
 } 

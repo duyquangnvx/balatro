@@ -1,5 +1,4 @@
 import { CardModel } from './CardModel';
-import { DeckModel } from './DeckModel';
 import { Suit } from './types';
 import { Rank } from './types';
 
@@ -16,8 +15,7 @@ enum SortType {
 export class HandModel {
     private cards: CardModel[] = [];
     private selectedCards: Set<CardModel> = new Set();
-    private currentSortType: SortType = SortType.NONE;
-    private readonly MAX_CARDS = 8;
+    private currentSortType: SortType = SortType.BY_RANK;
 
     constructor() {
         this.cards = [];
@@ -25,12 +23,6 @@ export class HandModel {
     }
 
     public addCards(newCards: CardModel[]): void {
-        // Check if adding these cards would exceed the maximum
-        if (this.cards.length + newCards.length > this.MAX_CARDS) {
-            console.warn(`Cannot add ${newCards.length} cards. Maximum hand size is ${this.MAX_CARDS}`);
-            return;
-        }
-
         // Add cards to our collection
         this.cards.push(...newCards);
         
@@ -41,6 +33,10 @@ export class HandModel {
 
         // Apply current sort if any
         this.applySorting();
+    }
+
+    public removeCards(cards: CardModel[]): void {
+        this.cards = this.cards.filter(card => !cards.includes(card));
     }
 
     private applySorting(): void {
@@ -93,6 +89,10 @@ export class HandModel {
         this.sortByRankInternal();
     }
 
+    public getCurrentSortType(): SortType {
+        return this.currentSortType;
+    }
+
     public selectCard(card: CardModel): void {
         if (this.cards.includes(card)) {
             this.selectedCards.add(card);
@@ -111,6 +111,10 @@ export class HandModel {
         return Array.from(this.selectedCards);
     }
 
+    public clearSelection(): void {
+        this.selectedCards.clear();
+    }
+
     public getCards(): CardModel[] {
         return [...this.cards];
     }    
@@ -118,43 +122,6 @@ export class HandModel {
     public getCardCount(): number {
         return this.cards.length;
     }
-
-    public getMaxCards(): number {
-        return this.MAX_CARDS;
-    }
-
-    public hasSpaceForCards(count: number): boolean {
-        return this.cards.length + count <= this.MAX_CARDS;
-    }
-
-    public clearSelection(): void {
-        this.selectedCards.clear();
-    }
-
-    /**
-     * Discard selected cards and return them
-     * @returns The discarded cards
-     */
-    public discardSelectedCards(): CardModel[] {
-        if (this.selectedCards.size === 0) return [];
-
-        const discardedCards: CardModel[] = [];
-
-        // Remove selected cards
-        this.selectedCards.forEach(card => {
-            const index = this.cards.indexOf(card);
-            if (index !== -1) {
-                this.cards.splice(index, 1);
-                discardedCards.push(card);
-            }
-        });
-
-        // Clear the selection set
-        this.selectedCards.clear();
-
-        return discardedCards;
-    }
-
 
     public toggleCardSelection(card: CardModel): void {
         if (this.selectedCards.has(card)) {

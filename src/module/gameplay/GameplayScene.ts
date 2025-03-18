@@ -1,14 +1,10 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from '../../scenes/SceneKeys';
-import { GameplayService } from './GameplayService';
-import { DeckView } from './views/DeckView';
-import { HandView } from './views/HandView';
+import { BoardController } from './BoardController';
 
 export class GameplayScene extends Scene
 {
-    private gameplayService!: GameplayService;
-    private deckView!: DeckView;
-    private handView!: HandView;
+    private boardController!: BoardController;
     
     // UI elements
     private handControllerContainer!: Phaser.GameObjects.Container;
@@ -21,52 +17,31 @@ export class GameplayScene extends Scene
     constructor ()
     {
         super({ key: SceneKeys.GAMEPLAY });
-
-        // Initialize gameplay service
-        this.gameplayService = GameplayService.getInstance();
-        this.gameplayService.initialize();
     }
 
     preload ()
     {
         this.load.setPath('assets');
-        
         this.load.image('background', 'bg.png');
         this.load.image('logo', 'logo.png');
     }
 
     create ()
     {
-        this.createUI();
-        this.createHandController();
-        this.startGame();
-    }
-
-    private createUI(): void {
         // Add background centered in the screen
         const bg = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'background');
         bg.setOrigin(0.5, 0.5); // Center the image
 
-        // Create UI objects
-        const deck = this.gameplayService.getDeck();
-        const hand = this.gameplayService.getPlayerHand();
+        this.boardController = new BoardController(this);
+        this.boardController.initBoard();
 
-        if (deck && hand) {
-            this.deckView = new DeckView(this, deck);
-            // Set deck position to bottom right
-            const deckX = this.cameras.main.width - 100;
-            const deckY = this.cameras.main.height - 120;
-            this.deckView.setPosition(deckX, deckY);
+        this.initPlayerController();
 
-            this.handView = new HandView(this, hand);
-            // Set hand position to center bottom
-            const x = this.cameras.main.width / 2;
-            const y = this.cameras.main.height - 120;
-            this.handView.setPosition(x, y);
-        }
+        this.boardController.newGame();
+        this.boardController.startGame();
     }
     
-    private createHandController(): void {
+    private initPlayerController(): void {
         const centerX = this.cameras.main.width / 2;
         const buttonY = this.cameras.main.height - 40;
         
@@ -158,74 +133,14 @@ export class GameplayScene extends Scene
             console.log('Play Hand clicked - to be implemented');
         });
         
-        this.sortByRankButton.on('pointerdown', () => this.sortByRank());
-        this.sortBySuitButton.on('pointerdown', () => this.sortBySuit());
-        this.discardButton.on('pointerdown', () => this.discardSelectedCards());
-    }
-    
-    private sortByRank(): void {
-        const hand = this.gameplayService.getPlayerHand();
-        hand.sortByRank();
-        this.handView.arrangeCards(true); // Use animation
+        this.sortByRankButton.on('pointerdown', () => this.boardController.sortCardsByRank());
+        this.sortBySuitButton.on('pointerdown', () => this.boardController.sortCardsBySuit());
+        this.discardButton.on('pointerdown', () => this.boardController.discardSelectedCards());
     }
 
-    private sortBySuit(): void {
-        const hand = this.gameplayService.getPlayerHand();
-        hand.sortBySuit();
-        this.handView.arrangeCards(true); // Use animation
-    }
-
-    private async discardSelectedCards(): Promise<void> {
-        const hand = this.gameplayService.getPlayerHand();
-        const discardedCards = hand.discardSelectedCards();
-        
-        const deck = this.gameplayService.getDeck();
-        const newCards = deck.drawCards(discardedCards.length);
-        hand.addCards(newCards);
-        
-        if (discardedCards.length > 0) {
-            await this.handView.animateDiscardCards(discardedCards);
-            await this.handView.animateDrawCards(this.deckView, newCards);
-        }
-    }
-
-    private startGame(): void {
-        this.gameplayService.startGame();
-
-        // Destroy old views if they exist
-        if (this.deckView) {
-            this.deckView.destroy();
-        }
-        if (this.handView) {
-            this.handView.destroy();
-        }
-    
-        // Recreate views with new models
-        const deck = this.gameplayService.getDeck();
-        const hand = this.gameplayService.getPlayerHand();
-    
-        if (deck && hand) {
-            this.deckView = new DeckView(this, deck);
-            const deckX = this.cameras.main.width - 100;
-            const deckY = this.cameras.main.height - 120;
-            this.deckView.setPosition(deckX, deckY);
-    
-            this.handView = new HandView(this, hand);
-            const x = this.cameras.main.width / 2;
-            const y = this.cameras.main.height - 120;
-            this.handView.setPosition(x, y);
-        }
-    }
 
     destroy(): void {
-        if (this.deckView) {
-            this.deckView.destroy();
-        }
-        
-        if (this.handView) {
-            this.handView.destroy();
-        }
-        
+        this.boardController.destroy();
         if (this.handControllerContainer) {
             this.handControllerContainer.destroy();
         }
