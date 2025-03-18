@@ -12,11 +12,42 @@ export class HandView extends CardViewsContainer {
     private readonly ARRANGE_DURATION = 200;
     private readonly DRAW_DURATION = 200;
     private readonly HAND_DEPTH: number;
+    private readonly MOVE_OFFSET = 50; // Offset for moving hand up/down
 
     constructor(scene: Scene, model: HandModel, cardAreaX: number, cardAreaY: number, depth: number) {
         super(scene, cardAreaX, cardAreaY);
         this.model = model;
         this.HAND_DEPTH = depth;
+    }
+
+    /**
+     * Move the hand view down with animation
+     * @returns Promise that resolves when the animation is complete
+     */
+    public async animateMoveDown(): Promise<void> {
+        const newY = this.cardAreaY + this.MOVE_OFFSET;
+        this.cardAreaY = newY;
+
+        const animatePromises = this.cardViews.map(cardView => {
+            return cardView.animateMoveTo(cardView.x, newY, 300);
+        });
+
+        await Promise.all(animatePromises);
+    }
+
+    /**
+     * Move the hand view back up with animation
+     * @returns Promise that resolves when the animation is complete
+     */
+    public async animateMoveUp(): Promise<void> {
+        const newY = this.cardAreaY - this.MOVE_OFFSET;
+        this.cardAreaY = newY;
+
+        const animatePromises = this.cardViews.map(cardView => {
+            return cardView.animateMoveTo(cardView.x, newY, 300);
+        });
+
+        await Promise.all(animatePromises);
     }
 
     protected override onCardClicked(cardView: CardView): void {

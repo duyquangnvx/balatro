@@ -134,6 +134,9 @@ export class BoardController {
         // Sort card views by x position (left to right)
         cardViews.sort((a, b) => a.x - b.x);
 
+        // Move hand down before starting card animations
+        await this.handView.animateMoveDown();
+
         // Calculate positions for centered arrangement
         const cardWidth = cardViews[0].width;
         const spacing = cardWidth + 20; // 20px gap between cards
@@ -148,6 +151,10 @@ export class BoardController {
             // Remove from hand and animate moving up
             this.handView.removeCardView(cardView);
             cardView.animateMoveTo(targetX, centerY);
+
+            // Rearrange remaining cards in hand
+            this.handView.animateArrangeCards(false);
+            
             await delay(100); // Small delay between each card moving up
         }
 
@@ -175,8 +182,8 @@ export class BoardController {
         // Execute the play action after animations
         this.board.playSelectedCards();
 
-        // Rearrange remaining cards in hand
-        this.handView.animateArrangeCards(false);
+        // Move hand back up before drawing new cards
+        await this.handView.animateMoveUp();
         await delay(200);
 
         // 4. Draw new cards from deck
