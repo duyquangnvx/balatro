@@ -21,13 +21,13 @@ export class HandView extends CardViewsContainer {
 
     protected override onCardClicked(cardView: CardView): void {
         const card = cardView.getModel();
-        const wasSelected = this.model.isCardSelected(card);
         this.model.toggleCardSelection(card);
         
-        if (wasSelected) {
-            cardView.lowerDown();
-        } else {
+        const isSelected = this.model.isCardSelected(card);
+        if (isSelected) {
             cardView.liftUp();
+        } else {
+            cardView.lowerDown();
         }     
     }
 

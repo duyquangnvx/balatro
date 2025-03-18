@@ -1,6 +1,7 @@
 import { CardModel } from './CardModel';
 import { Suit } from './types';
 import { Rank } from './types';
+import { BoardConfig } from '../Config';
 
 // Enum to track current sort type
 enum SortType {
@@ -94,7 +95,7 @@ export class HandModel {
     }
 
     public selectCard(card: CardModel): void {
-        if (this.cards.includes(card)) {
+        if (this.cards.includes(card) && this.selectedCards.size < BoardConfig.MAX_SELECTED_CARDS) {
             this.selectedCards.add(card);
         }
     }
