@@ -3,6 +3,7 @@ import { BoardModel } from "./models/BoardModel";
 import { CardView, DeckView, DiscardPileView, HandView } from "./views";
 import { delay } from "../../Utils";
 import { CardModel } from "./models/CardModel";
+import { PokerHandEvaluator } from "./logic/PokerHandEvaluator";
 
 export class BoardController {
     private scene: Scene;
@@ -161,11 +162,29 @@ export class BoardController {
         // Wait for all cards to finish moving up
         await delay(400);
 
-        // 2. Animate scores for all cards
+        // 2. Get cards that form the highest poker hand
+        const selectedCardModels = cardViews.map(cv => cv.getModel());
+        const pokerHandCards = PokerHandEvaluator.getPokerHandCards(selectedCardModels);
+        const pokerHandCardIds = new Set(pokerHandCards.map(card => (card as CardModel).id));
+
+        // First lift up the cards that will be scored
+        const liftOffset = -30; // Lift cards up by 30 pixels
+        const liftPromises: Promise<void>[] = [];
         for (const cardView of cardViews) {
-            const score = this.calculateCardScore(cardView.getModel());
-            cardView.animateScore(score);
-            await delay(100); // Small delay between each score animation
+            if (pokerHandCardIds.has(cardView.getModel().id)) {
+                liftPromises.push(cardView.animateMoveTo(cardView.x, cardView.y + liftOffset, 200));
+            }
+        }
+        await Promise.all(liftPromises);
+        await delay(200); // Short pause after lifting
+
+        // Then animate scores for the lifted cards
+        for (const cardView of cardViews) {
+            if (pokerHandCardIds.has(cardView.getModel().id)) {
+                const score = this.calculateCardScore(cardView.getModel());
+                cardView.animateScore(score);
+                await delay(100); // Small delay between each score animation
+            }
         }
 
         // Wait for score animations to complete

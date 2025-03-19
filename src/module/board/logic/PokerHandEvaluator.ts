@@ -65,6 +65,134 @@ export class PokerHandEvaluator {
     }
     
     /**
+     * Get cards that form the highest poker hand
+     * @param cards Array of cards to evaluate
+     * @returns Array of cards that form the highest poker hand
+     */
+    public static getPokerHandCards(cards: ICard[]): ICard[] {
+        if (!cards || cards.length === 0) return [];
+        
+        const visibleCards = cards.filter(card => card.faceUp);
+        if (visibleCards.length === 0) return [];
+
+        // Sort cards by value for easier processing
+        const sortedCards = [...visibleCards].sort((a, b) => 
+            this.getCardValue(b.rank) - this.getCardValue(a.rank)
+        );
+
+        // Check each hand type from highest to lowest and return the cards that form it
+        if (this.isFlushHouse(sortedCards)) {
+            return sortedCards.slice(0, 5); // All 5 cards form the flush house
+        }
+
+        if (this.isFiveOfAKind(sortedCards)) {
+            // Get all cards of the same rank
+            const rank = sortedCards[0].rank;
+            return sortedCards.filter(card => card.rank === rank).slice(0, 5);
+        }
+
+        if (this.isRoyalFlush(sortedCards) || this.isStraightFlush(sortedCards)) {
+            return sortedCards.slice(0, 5); // All 5 cards form the straight flush/royal flush
+        }
+
+        if (this.isFourOfAKind(sortedCards)) {
+            const rankCount = this.countRanks(sortedCards);
+            const fourOfAKindRank = Object.entries(rankCount).find(([_, count]) => count === 4)?.[0];
+            return sortedCards.filter(card => card.rank === fourOfAKindRank).slice(0, 4);
+        }
+
+        if (this.isFullHouse(sortedCards)) {
+            const rankCount = this.countRanks(sortedCards);
+            const threeOfAKindRank = Object.entries(rankCount).find(([_, count]) => count === 3)?.[0];
+            const pairRank = Object.entries(rankCount).find(([_, count]) => count === 2)?.[0];
+            return sortedCards.filter(card => 
+                card.rank === threeOfAKindRank || card.rank === pairRank
+            ).slice(0, 5);
+        }
+
+        if (this.isFlush(sortedCards)) {
+            // Get the highest 5 cards of the same suit
+            const suit = sortedCards[0].suit;
+            return sortedCards.filter(card => card.suit === suit).slice(0, 5);
+        }
+
+        if (this.isStraight(sortedCards)) {
+            // Handle Ace-low straight
+            if (this.isAceLowStraight(sortedCards)) {
+                const ace = sortedCards.find(card => card.rank === Rank.ACE);
+                const lowCards = sortedCards.filter(card => this.getCardValue(card.rank) <= 5);
+                return [...lowCards, ace!].slice(0, 5);
+            }
+            // Regular straight
+            return this.getStraightCards(sortedCards).slice(0, 5);
+        }
+
+        if (this.isThreeOfAKind(sortedCards)) {
+            const rankCount = this.countRanks(sortedCards);
+            const threeOfAKindRank = Object.entries(rankCount).find(([_, count]) => count === 3)?.[0];
+            return sortedCards.filter(card => card.rank === threeOfAKindRank).slice(0, 3);
+        }
+
+        if (this.isTwoPair(sortedCards)) {
+            const rankCount = this.countRanks(sortedCards);
+            // Get the two highest pairs
+            const pairRanks = Object.entries(rankCount)
+                .filter(([_, count]) => count === 2)
+                .sort(([rankA], [rankB]) => this.getCardValue(rankB as Rank) - this.getCardValue(rankA as Rank))
+                .slice(0, 2)
+                .map(([rank]) => rank);
+            return sortedCards.filter(card => pairRanks.includes(card.rank)).slice(0, 4);
+        }
+
+        if (this.isPair(sortedCards)) {
+            const rankCount = this.countRanks(sortedCards);
+            // Get the highest pair
+            const pairRank = Object.entries(rankCount)
+                .filter(([_, count]) => count === 2)
+                .sort(([rankA], [rankB]) => this.getCardValue(rankB as Rank) - this.getCardValue(rankA as Rank))[0][0];
+            return sortedCards.filter(card => card.rank === pairRank).slice(0, 2);
+        }
+
+        // High card - return the highest card
+        return [sortedCards[0]];
+    }
+
+    /**
+     * Check if cards form an Ace-low straight (A-2-3-4-5)
+     */
+    private static isAceLowStraight(cards: ICard[]): boolean {
+        const values = cards.map(card => this.getCardValue(card.rank)).sort((a, b) => a - b);
+        return JSON.stringify(values.slice(0, 4)) === JSON.stringify([2, 3, 4, 5]) && values.includes(14);
+    }
+
+    /**
+     * Get cards that form a straight
+     */
+    private static getStraightCards(cards: ICard[]): ICard[] {
+        const values = cards.map(card => this.getCardValue(card.rank));
+        const uniqueValues = [...new Set(values)].sort((a, b) => b - a);
+        
+        for (let i = 0; i < uniqueValues.length - 4; i++) {
+            const possibleStraight = uniqueValues.slice(i, i + 5);
+            if (this.isSequential(possibleStraight)) {
+                const straightValues = new Set(possibleStraight);
+                return cards.filter(card => straightValues.has(this.getCardValue(card.rank))).slice(0, 5);
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Check if array of numbers forms a sequence
+     */
+    private static isSequential(numbers: number[]): boolean {
+        for (let i = 1; i < numbers.length; i++) {
+            if (numbers[i] !== numbers[i - 1] - 1) return false;
+        }
+        return true;
+    }
+    
+    /**
      * Identify the type of poker hand
      * @param cards Array of cards to evaluate
      * @returns The hand type
