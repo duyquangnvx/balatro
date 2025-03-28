@@ -4,13 +4,14 @@ import { PreloadScene } from './scenes/preload-scene';
 import { GameScene } from './scenes/game-scene';
 import { LoadingScene } from './scenes/loading-scene';
 import { TransitionFade } from './scenes/transitions/transition-scene';
+import { GAME_CONFIG } from './config/game-config';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
-    width: 1280,
-    height: 720,
+    width: GAME_CONFIG.SCREEN_WIDTH,
+    height: GAME_CONFIG.SCREEN_HEIGHT,
     parent: 'game-container',
     scene: [BootScene, TransitionFade, PreloadScene, LoadingScene, GameScene],
     physics: {

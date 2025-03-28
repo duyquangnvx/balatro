@@ -1,11 +1,13 @@
-import { getCardFrontFrame } from "../../utils/card-helpers";
-import { getCardEnhancementFrame } from "../../utils/card-helpers";
 import { Scene } from "phaser";
-import { Card } from "./card";
-import { getCardBackFrame } from "../../utils/card-helpers";
-import { CardView } from "../../module/board/views/CardView";
+import { Card } from "../objects/card";
 
-export class CardVisual extends Card {
+/**
+ * CardDisplay is a base class for all card displays.
+ * It provides a common interface for all card displays.
+ */
+export abstract class CardDisplay<T extends Card = Card> extends Phaser.GameObjects.Container {
+    private card?: T;
+
     // Card display
     protected readonly contentParent: Phaser.GameObjects.Container;
     protected readonly shakeParent: Phaser.GameObjects.Container;
@@ -23,7 +25,7 @@ export class CardVisual extends Card {
     private static readonly LIFT_OFFSET = 20;
     private static readonly FLIP_DURATION = 300;
 
-    constructor(scene: Scene) {
+    constructor(scene: Scene, card?: T) {
         super(scene);
         scene.add.existing(this);
 
@@ -58,14 +60,10 @@ export class CardVisual extends Card {
         this.on('dragend', this.onDragend, this);
     }
 
-    protected initializeDisplay(): void {
-    
-    }
-
     /**
      * Handle pointer over event - apply shake and zoom effects
      */
-    private onPointerover(): void {
+    protected onPointerover(): void {
         this.singleShake();
         this.startZoom();
     }
@@ -73,46 +71,46 @@ export class CardVisual extends Card {
     /**
      * Handle pointer out event - reset zoom
      */
-    private onPointerout(): void {
+    protected onPointerout(): void {
         this.stopZoom();
     }
 
-    private onPointerdown(): void {
+    protected onPointerdown(): void {
         this.startZoom();
 
         // todo: Update shadow with smooth animation
     }
 
-    private onPointerup(): void {
+    protected onPointerup(): void {
         this.stopZoom();
 
         // todo: Reset depth if not selected
         // todo: Update shadow with smooth animation
     }
 
-    private onDragstart(): void {
+    protected onDragstart(): void {
         this.startZoom();
 
         // todo: Update shadow for dragging state
         // todo: bring to top
     }
 
-    private onDrag(): void {
+    protected onDrag(): void {
         
     }
 
-    private onDragend(): void {
+    protected onDragend(): void {
         this.stopZoom();
 
         // todo: Reset depth if not selected
         // todo: Reset shadow position
     }
 
-    private onClick(): void {
+    protected onClick(): void {
         this.emit('click', this);
     }
 
-    private singleShake(): void {
+    protected singleShake(): void {
         // Stop any existing shake animation
         this.stopShake();
 
@@ -129,14 +127,14 @@ export class CardVisual extends Card {
         });
     }
 
-    private stopShake(): void {
+    protected stopShake(): void {
         if (this.shakeAnimation) {
             this.shakeAnimation.stop();
             this.shakeAnimation = undefined;
         }
     }
 
-    private startZoom(): void {
+    protected startZoom(): void {
         // Stop any existing zoom animation
         this.stopZoom();
 
@@ -150,7 +148,7 @@ export class CardVisual extends Card {
         });
     }
 
-    private stopZoom(): void {
+    protected stopZoom(): void {
         if (this.zoomAnimation) {
             this.zoomAnimation.stop();
             this.zoomAnimation = undefined;
@@ -176,7 +174,7 @@ export class CardVisual extends Card {
         // Create a new lift animation
         this.liftAnimation = this.scene.tweens.add({
             targets: this.shakeParent,
-            y: -CardVisual.LIFT_OFFSET,
+            y: -CardDisplay.LIFT_OFFSET,
             duration: 200,
             ease: 'Back.easeOut'
         });
@@ -201,13 +199,18 @@ export class CardVisual extends Card {
     /**
      * Stop lift/lower animation
      */
-    private stopLift(): void {
+    protected stopLift(): void {
         if (this.liftAnimation) {
             this.liftAnimation.stop();
             this.liftAnimation = undefined;
         }
     }
 
+    /**
+     * Animate card flipping
+     * @param faceUp - Whether the card should be face up
+     * @param delay - The delay before the animation starts
+     */
     public async animateFlip(faceUp: boolean, delay: number = 0): Promise<void> {
         // Stop any existing flip animation
         this.stopFlip();
@@ -220,18 +223,19 @@ export class CardVisual extends Card {
             this.flipAnimation = this.scene.tweens.add({
                 targets: this.shakeParent,
                 scaleX: 0,
-                duration: CardVisual.FLIP_DURATION / 2,
+                duration: CardDisplay.FLIP_DURATION / 2,
                 ease: 'Power2',
                 delay: delay,
                 onComplete: () => {
                     // Set the specified face state at midpoint
                     this.setFlipped(faceUp);
+                    this.updateDisplay();
 
                     // Second half of flip: expand
                     this.flipAnimation = this.scene.tweens.add({
                         targets: this.shakeParent,
                         scaleX: 1,
-                        duration: CardVisual.FLIP_DURATION / 2,
+                        duration: CardDisplay.FLIP_DURATION / 2,
                         ease: 'Power2',
                         onComplete: () => {
                             // Clean up
@@ -252,16 +256,21 @@ export class CardVisual extends Card {
         }   
     }
 
+    /**
+     * Update the display of the card.
+     * This method should be called when the card is flipped or the textures are updated.
+     */
     public updateDisplay(): void {
-        this.frontSprite.setVisible(this.isFlipped());
-        this.backSprite.setVisible(!this.isFlipped());
-        this.enhancementSprite.setVisible(this.isFlipped());
-
         this.updateTextures();    
 
+        const flipped = this.isFlipped() || !this.isUnknown();
+        this.frontSprite.setVisible(flipped);
+        this.backSprite.setVisible(!flipped);
+        this.enhancementSprite.setVisible(flipped);
+
         // Set the size of the container based on the sprite dimensions
-        const width = this.frontSprite.width;
-        const height = this.frontSprite.height;
+        const width = this.backSprite.width;
+        const height = this.backSprite.height;
         this.setSize(width, height);
 
         // Make the entire container interactive with a properly centered hitArea
@@ -278,9 +287,9 @@ export class CardVisual extends Card {
     }
 
     public updateTextures(): void {
-        this.frontSprite.setTexture('card-fronts', getCardFrontFrame(this));
-        this.backSprite.setTexture('card-backs', getCardBackFrame(this));
-        this.enhancementSprite.setTexture('card-enhancements', getCardEnhancementFrame(this));
+        this.frontSprite.setTexture('card-fronts', this.getCardFrontFrame());
+        this.backSprite.setTexture('card-backs', this.getCardBackFrame());
+        this.enhancementSprite.setTexture('card-enhancements', this.getCardEnhancementFrame());
     }
 
     public destroy(): void {
@@ -295,4 +304,50 @@ export class CardVisual extends Card {
 
         super.destroy();
     }
+    
+    public setCard(card: T): void {
+        this.card = card;
+    }
+
+    public getCard(): T | undefined {
+        return this.card;
+    }
+
+    public isUnknown(): boolean {
+        return this.card === undefined;
+    }
+
+    /**
+     * Set the flipped state of the card
+     * @param flipped - The flipped state of the card
+     */
+    public setFlipped(flipped: boolean): void {
+        this.card?.setFlipped(flipped);
+    }
+
+    /**
+     * Get the flipped state of the card
+     * @returns The flipped state of the card
+     */
+    public isFlipped(): boolean {
+        return this.card?.isFlipped() ?? false;
+    }  
+
+    /**
+     * Get the front frame of the card
+     * @returns The front frame of the card
+     */
+    protected abstract getCardFrontFrame(): string;
+
+    /**
+     * Get the back frame of the card
+     * @returns The back frame of the card
+     */
+    protected abstract getCardBackFrame(): string;
+
+    /**
+     * Get the enhancement frame of the card
+     * @returns The enhancement frame of the card
+     */ 
+    protected abstract getCardEnhancementFrame(): string;
 }

@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
-import { Card } from "./card";
 import { Logger } from "../../core/logger";
+import { CardDisplay } from "../card-display";
+import { Card } from "../../objects/card";
 
 export type CardAreaConfig = {
     x: number,
@@ -8,7 +9,6 @@ export type CardAreaConfig = {
     width: number,
     height: number,
     depth?: number,
-    cardLimit?: number,
     rotation?: number
 }
 
@@ -19,24 +19,26 @@ export type CardTransform = {
     depth: number
 }
 
-export class CardArea<T extends Card = Card> {
-    protected readonly cards: T[];
+export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events.EventEmitter {
     protected readonly config: CardAreaConfig;
+    protected readonly cardDisplays: T[];
+
+    // Map of card id to target transform
+    private readonly cardTargetTransforms: Map<T, CardTransform>;
 
     private autoArrange: boolean;
 
-    // Map of card id to target transform
-    private readonly cardTargetTransforms: Map<string, CardTransform>;
     // Lerp factor for auto arrange
     private static readonly LERP_FACTOR = 0.1;
 
     protected scene: Scene;
 
     constructor(scene: Scene, config: CardAreaConfig) {
+        super();
         this.scene = scene;
-        this.cards = [];
+        this.cardDisplays = [];
         this.config = config;
-        this.autoArrange = false;
+        this.autoArrange = true;
         this.cardTargetTransforms = new Map();
 
         this.initializeDisplay();
@@ -47,39 +49,54 @@ export class CardArea<T extends Card = Card> {
     }
         
     /**
-     * Add a card to this area
+     * Add a card display to this area
+     * @param cardDisplay - The card display to add
+     * @returns True if the card display was added, false if the card limit was reached
      */
-    public addCard(card: T): boolean {
-        // Check if area has a card limit and if it's reached
-        if (this.config.cardLimit !== undefined && this.cards.length >= this.config.cardLimit) {
-            Logger.error("Card limit reached for this area");
-            return false;
-        }
-
-        this.cards.push(card);
-        this.setupCardInteraction(card);
+    public addCardDisplay(cardDisplay: T): boolean {
+        this.cardDisplays.push(cardDisplay);
+        this.setupCardInteraction(cardDisplay);
 
         return true;
     }
 
      /**
-     * Remove a card from this area
+     * Remove a card display from this area
+     * @param cardDisplay - The card display to remove
+     * @returns The removed card display
      */
-     public removeCard(card: T): T | undefined {
-        const index = this.cards.indexOf(card);
+     public removeCardDisplay(cardDisplay: T): T | undefined {
+        const index = this.cardDisplays.indexOf(cardDisplay);
         if (index === -1) {
             return undefined;
         }
         
-        const removedCard = this.cards.splice(index, 1)[0];
-        this.removeCardInteraction(removedCard);
+        const removedCardDisplay = this.cardDisplays.splice(index, 1)[0];
+        this.removeCardInteraction(removedCardDisplay);
 
-        if (removedCard) {
-            const cardId = removedCard.getId();
-            this.cardTargetTransforms.delete(cardId);
+        if (removedCardDisplay) {
+            this.cardTargetTransforms.delete(removedCardDisplay);
         }
 
-        return removedCard;
+        return removedCardDisplay;
+    }
+    
+    /**
+     * Find a card display from this area
+     * @param card - The card to find
+     * @returns The card display
+     */
+    public findCardDisplay(card: Card): T | undefined {
+        return this.cardDisplays.find(c => c.getCard() === card);
+    }
+
+    /**
+     * Check if this area contains a card
+     * @param card - The card to check
+     * @returns True if the card is in this area, false otherwise
+     */
+    public containsCard(card: Card): boolean {
+        return this.cardDisplays.some(c => c.getCard() === card);
     }
 
     /**
@@ -87,26 +104,26 @@ export class CardArea<T extends Card = Card> {
      */
     public clearCards(): void {
         this.cardTargetTransforms.clear();
-        this.cards.length = 0;
+        this.cardDisplays.length = 0;
     }
- 
-    /**
-     * Get all cards in this area
-     */
-    public getCards(): Card[] {
-        return [...this.cards];
+
+    public getCardCount(): number {
+        return this.cardDisplays.length;
+    }
+
+    public updateDisplay(): void {
+        this.arrangeCards();
     }
 
     /**
-     * Arrange cards in a grid or other layout
-     * Override in subclasses for specific arrangements
+     * Force arrange cards
      */
     protected arrangeCards(): void {
-        if (this.cards.length === 0) {
+        if (this.cardDisplays.length === 0) {
             return;
         }
 
-        this.cards.forEach((card, index) => {
+        this.cardDisplays.forEach((card, index) => {
             const { x, y, rotation, depth } = this.calculateCardTransformAt(index);
             card.setPosition(x, y);
             card.setRotation(rotation);
@@ -114,14 +131,15 @@ export class CardArea<T extends Card = Card> {
         });
     }
 
-    // Auto arrange cards with lerp
+    /**
+     * Auto arrange cards with lerp, to make it look smooth.
+     * Called every frame if autoArrange is true.
+     */
     protected autoArrangeCards(): void {
-        this.cards.forEach((card, index) => {
-            const cardId = card.getId();
-            
+        this.cardDisplays.forEach((card, index) => {
             const targetTransform = this.calculateCardTransformAt(index);
             
-            this.cardTargetTransforms.set(cardId, targetTransform);
+            this.cardTargetTransforms.set(card, targetTransform);
 
             const { x, y, rotation, depth } = targetTransform;
             
@@ -134,6 +152,13 @@ export class CardArea<T extends Card = Card> {
         });
     }
 
+    /**
+     * Calculate the transform for a card at a given index.
+     * This is used to determine the position, rotation, and depth of a card.
+     * Override this in subclasses to change the arrangement logic.
+     * @param index The index of the card to calculate the transform for.
+     * @returns The transform for the card.
+     */
     protected calculateCardTransformAt(index: number): CardTransform {
         // Default basic grid arrangement
         const cardWidth = 140 * 0.8; // Using default card dimensions and scale
@@ -162,7 +187,7 @@ export class CardArea<T extends Card = Card> {
     }
 
     protected onCardClick(card: T): void {
-        console.log('Card clicked:', card);
+        Logger.info('Card clicked:', card);
     }
     
     public getPosition(): { x: number, y: number } {
@@ -185,6 +210,10 @@ export class CardArea<T extends Card = Card> {
     public update(): void {
         if (this.autoArrange) {
             this.autoArrangeCards();
+        }
+
+        for (const card of this.cardDisplays) {
+            card.update();
         }
     }
 }

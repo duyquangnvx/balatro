@@ -1,2 +1,5 @@
-import { CardVisual } from "../objects/cards/card-visual";
+import { CardDisplay } from "../components/card-display";
 
+export function animateFlipCard(card: CardDisplay) {
+    
+}

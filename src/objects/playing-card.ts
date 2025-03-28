@@ -1,6 +1,4 @@
-import { Scene } from "phaser";
 import { Card } from "./card";
-import { CardVisual } from "./card-visual";
 export enum Suit {
     HEARTS = 'hearts',
     DIAMONDS = 'diamonds',
@@ -36,19 +34,16 @@ export enum Enhancement {
     LUCKY = 'lucky'
 }
 
-export class PlayingCard extends CardVisual {
+export class PlayingCard extends Card {
     private readonly suit: Suit;
     private readonly rank: Rank;
     private enhancement: Enhancement;
 
-    constructor(scene: Scene, suit: Suit, rank: Rank) {
-        super(scene);
-
+    constructor(suit: Suit, rank: Rank) {
+        super();
         this.suit = suit;
         this.rank = rank;
         this.enhancement = Enhancement.NORMAL;
-
-        this.updateDisplay();
     }
 
     public getSuit(): Suit {

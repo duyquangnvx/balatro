@@ -1,0 +1,11 @@
+export const GAME_CONFIG = {
+    SCREEN_WIDTH: 1280,
+    SCREEN_HEIGHT: 720,
+    
+    INITIAL_DECK_SIZE: 52,
+    INITIAL_HAND_SIZE: 8,
+    MAX_SELECTED_CARDS: 5,
+    MAX_JOKERS: 12,
+    STARTING_MONEY: 0,
+    DEBUG: false
+}

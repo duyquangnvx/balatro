@@ -1,25 +1,5 @@
-import { Card } from "../objects/cards/card";
-import { PlayingCard, Rank, Suit } from "../objects/cards/playing-card";
+import { PlayingCard, Rank, Suit } from "../objects/playing-card";
 
-export function getCardFrontFrame(card: Card): string {
-    if (card instanceof PlayingCard) {
-        return `${card.getSuit()}_${card.getRank()}.png`;
-    }
-
-    return '';
-}
-
-export function getCardBackFrame(card: Card): string {
-    return `red.png`;
-}
-
-export function getCardEnhancementFrame(card: Card): string {
-    if (card instanceof PlayingCard) {
-        return `${card.getEnhancement()}.png`;
-    }
-
-    return '';
-}
 
 export function sortBySuitInternal(cards: PlayingCard[]): void {
     cards.sort((a, b) => {
