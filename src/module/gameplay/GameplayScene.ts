@@ -1,5 +1,4 @@
 import { Scene } from 'phaser';
-import { SceneKeys } from '../../scenes/SceneKeys';
 import { BoardController } from '../board/BoardController';
 import { GameStateView } from './views/GameStateView';
 import { GameState } from './models/GameState';
@@ -26,7 +25,7 @@ export class GameplayScene extends Scene
 
     constructor ()
     {
-        super({ key: SceneKeys.GAMEPLAY });
+        super({ key: 'GameplayScene' });
     }
 
     preload ()

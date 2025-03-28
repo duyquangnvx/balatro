@@ -1,7 +1,9 @@
 import 'phaser';
-import { PreloadScene } from './scenes/PreloadScene';
-import { SceneKeys } from './scenes/SceneKeys';
-import { GameplayScene } from './module/gameplay/GameplayScene';
+import { BootScene } from './scenes/boot-scene';
+import { PreloadScene } from './scenes/preload-scene';
+import { GameScene } from './scenes/game-scene';
+import { LoadingScene } from './scenes/loading-scene';
+import { TransitionFade } from './scenes/transitions/transition-scene';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -10,7 +12,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: 1280,
     height: 720,
     parent: 'game-container',
-    scene: [PreloadScene, GameplayScene],
+    scene: [BootScene, TransitionFade, PreloadScene, LoadingScene, GameScene],
     physics: {
         default: 'arcade',
         arcade: {
@@ -21,6 +23,10 @@ const config: Phaser.Types.Core.GameConfig = {
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    loader: {
+        baseURL: '',
+        path: 'assets/',
     }
 };
 

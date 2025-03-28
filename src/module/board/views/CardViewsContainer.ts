@@ -15,7 +15,7 @@ export abstract class CardViewsContainer {
 
     public setCardViews(cardViews: CardView[]): void {
         this.cardViews = cardViews;
-        this.cardViews.forEach(cardView => cardView.setOnClickCallback(this.onCardClicked.bind(this)));
+        this.cardViews.forEach(cardView => cardView.on('click', this.onCardClicked.bind(this)));
     }
 
     public getCardViews(): CardView[] {
@@ -26,12 +26,12 @@ export abstract class CardViewsContainer {
         if (!this.cardViews.includes(cardView)) {
             this.cardViews.push(cardView);
         }
-        cardView.setOnClickCallback(this.onCardClicked.bind(this));
+        cardView.on('click', this.onCardClicked.bind(this));
     }
 
     public removeCardView(cardView: CardView): void {
         this.cardViews = this.cardViews.filter(view => view !== cardView);
-        cardView.setOnClickCallback(null);
+        cardView.off('click', this.onCardClicked.bind(this));
     }
 
     public hasCardView(cardView: CardView): boolean {

@@ -1,6 +1,6 @@
-import { Scene, GameObjects } from 'phaser';
-import { AssetManager } from '../../../managers/AssetManager';
-import { GameState } from '../models/GameState';
+
+import { GameObjects, Scene } from 'phaser';
+import { GameState } from '../models/GameState';    
 
 /**
  * GameStateView - UI component for displaying game statistics on the left panel

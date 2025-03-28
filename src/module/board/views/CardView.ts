@@ -1,6 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
 import { CardModel } from '../models/CardModel';
-import { AssetManager } from '../../../managers/AssetManager';
 
 /**
  * CardView - UI representation of a Card model
@@ -17,7 +16,6 @@ export class CardView extends GameObjects.Container {
     private flipAnimation?: Phaser.Tweens.Tween;
     private moveAnimation?: Phaser.Tweens.Tween;
     private rotateAnimation?: Phaser.Tweens.Tween;
-    private onClickCallback: ((cardView: CardView) => void) | null;
 
     private static readonly LIFT_UP_OFFSET = 20;
     private static readonly FLIP_DURATION = 300;
@@ -31,17 +29,17 @@ export class CardView extends GameObjects.Container {
         this.add(this.cardContainer);
         
         // Initialize enhancement sprite first (below the card face)
-        this.enhancementSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
+        this.enhancementSprite = scene.add.sprite(0, 0, 'card-enhancements', this.getEnhancementFrame());
         this.enhancementSprite.setVisible(false);
         this.cardContainer.add(this.enhancementSprite);
         
         // Initialize face sprite (initially hidden)
-        this.faceSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.CARDS, this.getFaceCardFrame());
+        this.faceSprite = scene.add.sprite(0, 0, 'card-fronts', this.getFaceCardFrame());
         this.faceSprite.setVisible(false); // Hide initially
         this.cardContainer.add(this.faceSprite);
         
         // Initialize back sprite
-        this.backSprite = scene.add.sprite(0, 0, AssetManager.ATLAS.DECK, this.getCardBackFrame());
+        this.backSprite = scene.add.sprite(0, 0, 'card-backs', this.getCardBackFrame());
         this.backSprite.setVisible(true); // Show initially
         this.cardContainer.add(this.backSprite);
         
@@ -74,10 +72,6 @@ export class CardView extends GameObjects.Container {
         scene.add.existing(this);
     }
 
-    public setOnClickCallback(callback: ((cardView: CardView) => void) | null): void {
-        this.onClickCallback = callback;
-    }
-
     /**
      * Handle pointer over event - apply shake and zoom effects
      */
@@ -95,9 +89,7 @@ export class CardView extends GameObjects.Container {
     }
 
     private onClick(): void {
-        if (this.onClickCallback) {
-            this.onClickCallback(this);
-        }
+        this.emit('click', this);
     }
 
     private startZoom(): void {
@@ -366,9 +358,9 @@ export class CardView extends GameObjects.Container {
         this.enhancementSprite.setVisible(isFaceUp);
         
         // Update textures
-        this.faceSprite.setTexture(AssetManager.ATLAS.CARDS, this.getFaceCardFrame());
-        this.backSprite.setTexture(AssetManager.ATLAS.DECK, this.getCardBackFrame());
-        this.enhancementSprite.setTexture(AssetManager.ATLAS.ENHANCERS, this.getEnhancementFrame());
+        this.faceSprite.setTexture('card-fronts', this.getFaceCardFrame());
+        this.backSprite.setTexture('card-backs', this.getCardBackFrame());
+        this.enhancementSprite.setTexture('card-enhancements', this.getEnhancementFrame());
     }
 
     public setModel(model: CardModel): void {
