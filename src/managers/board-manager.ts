@@ -19,6 +19,8 @@ export class BoardManager {
     // List of all cards in the played pile
     private playedCards: PlayingCard[];
 
+    private maxSelectedCards: number;
+
     constructor() {
         this.cardMap = new Map();
         
@@ -26,6 +28,7 @@ export class BoardManager {
         this.deckCards = [];
         this.discardedCards = [];
         this.playedCards = [];
+        this.maxSelectedCards = GAME_CONFIG.MAX_SELECTED_CARDS;
 
         this.initiateCards();
     }
@@ -63,6 +66,10 @@ export class BoardManager {
         return this.playedCards;
     }
 
+    public getMaxSelectedCards(): number {
+        return this.maxSelectedCards;
+    }
+
     public applySorting(sortType: SortType): void {
         switch (sortType) {
             case SortType.BY_SUIT:
@@ -89,7 +96,8 @@ export class BoardManager {
         });
         this.shuffleDeck();
 
-        this.drawInitCards();
+        const initCards = this.drawInitCards();
+        this.addCardsToHand(initCards);
     }
 
     public playCards(cards: PlayingCard[]): void {
@@ -109,7 +117,7 @@ export class BoardManager {
         // todo: calculate score
     }
 
-    public discardCards(cards: PlayingCard[]): void {
+    public discardCards(cards: PlayingCard[]): PlayingCard[] {
         // Validate cards are in hand
         cards.forEach(card => {
             if (!this.handCards.includes(card)) {
@@ -122,32 +130,50 @@ export class BoardManager {
 
         // Remove the cards from the hand
         this.handCards = this.handCards.filter(card => !cards.includes(card));
+    
+        const drawnCards = this.drawCards(cards.length);
+        this.addCardsToHand(drawnCards);
+
+        return drawnCards;
     }
 
     private shuffleDeck(): void {
         Phaser.Utils.Array.Shuffle(this.deckCards);
     }
 
-    private drawInitCards(): void {
-        for (let i = 0; i < GAME_CONFIG.INITIAL_HAND_SIZE; i++) {
-            this.drawCard();
+    private drawInitCards(): PlayingCard[] {
+        return this.drawCards(GAME_CONFIG.INITIAL_HAND_SIZE);
+    }
+
+    private drawCards(count: number): PlayingCard[] {
+        const drawnCards: PlayingCard[] = [];
+        for (let i = 0; i < count; i++) {
+            const card = this.drawCard();
+            if (card) {
+                drawnCards.push(card);
+            }
         }
+
+        return drawnCards;
     }
 
     /**
      * Draw a from deck to hand
      */
-    private drawCard(): void {
+    private drawCard(): PlayingCard | undefined {
         // Validate deck is not empty
         if (this.deckCards.length === 0) {
             throw new Error("Deck is empty");
         }
 
         // Draw a card from the deck
-        const card = this.deckCards.pop();
-        if (card) {
+        return this.deckCards.pop();
+    }
+
+    private addCardsToHand(cards: PlayingCard[]): void {
+        cards.forEach(card => {
             card.setFlipped(true);
             this.handCards.push(card);
-        }
+        });
     }
 }

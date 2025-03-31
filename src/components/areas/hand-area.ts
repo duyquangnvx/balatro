@@ -2,8 +2,10 @@ import { Scene } from "phaser";
 import { CardArea, AreaProps, CardTransform } from "./card-area";
 import { PlayingCardDisplay } from "../playing-card-display";
 import { sortBySuitInternal, sortByRankInternal } from "../../utils/card-helpers";
-import { GAME_CONFIG } from "../../config/game-config";
-import { Toast, ToastType } from "../../ui/toast";
+import { Toast } from "../../ui/toast";
+import { BoardManager } from "../../managers/board-manager";
+import { PlayingCard } from "../../objects/playing-card";
+import { LocalStorage } from "../../utils/local-storage";
 
 export enum SortType {
     NONE,
@@ -14,12 +16,20 @@ export enum SortType {
 export class HandArea extends CardArea<PlayingCardDisplay> {
     private readonly selectedCards: PlayingCardDisplay[];
 
-    private maxSelectedCards: number;
-
-    constructor(scene: Scene, config: AreaProps, maxSelectedCards: number = GAME_CONFIG.MAX_SELECTED_CARDS) {
-        super(scene, config);
+    constructor(scene: Scene, config: AreaProps, boardManager: BoardManager) {
+        super(scene, config, boardManager);
         this.selectedCards = [];
-        this.maxSelectedCards = maxSelectedCards;
+    }
+
+    /**
+     * Override addCardDisplay to apply sort type
+     */
+    override addCardDisplay(cardDisplay: PlayingCardDisplay): boolean {
+        const added = super.addCardDisplay(cardDisplay);
+        if (added) {
+            this.applyCurrentSortType();
+        }
+        return added;
     }
 
     /**
@@ -37,7 +47,7 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         return removedCard;
     }
 
-    protected override calculateCardTransformAt(index: number): CardTransform {
+    protected override calculateCardRelativeTransformAt(index: number): CardTransform {
         const cardCount = this.cardDisplays.length;
 
         const maxCardSpacing = 10;
@@ -67,52 +77,53 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         };
     }
     
-    protected override onCardClick(card: PlayingCardDisplay): void {
-        this.selectCard(card);
+    protected override onCardClick(cardDisplay: PlayingCardDisplay): void {
+        this.selectCard(cardDisplay);
      }
     
-    public selectCard(card: PlayingCardDisplay): void {
+    public selectCard(cardDisplay: PlayingCardDisplay): void {
         // Lower down card if it is already selected
-        const index = this.selectedCards.indexOf(card);
+        const index = this.selectedCards.indexOf(cardDisplay);
         if (index !== -1) {
             // If card is already selected, then unselect it
             this.selectedCards.splice(index, 1);
-            card.lowerDown();
+            cardDisplay.lowerDown();
             this.emit('card-selected-changed', this.selectedCards);
             return;
         }
 
         // Check if the number of selected cards has reached the maximum
-        if (this.selectedCards.length >= this.maxSelectedCards) {
+        const maxSelectedCards = this.boardManager.getMaxSelectedCards();
+        if (this.selectedCards.length >= maxSelectedCards) {
             // Show warning toast
             Toast.getInstance().warning(
-                `Cannot select more than ${this.maxSelectedCards} cards!`, 
+                `Cannot select more than ${maxSelectedCards} cards!`, 
                 { position: 'top', duration: 1500 }
             );
             return;
         }
 
-        if (!this.cardDisplays.includes(card)) {
+        if (!this.cardDisplays.includes(cardDisplay)) {
             return;
         }
         
         // Add card to selected cards
-        this.selectedCards.push(card);
-        card.liftUp();
+        this.selectedCards.push(cardDisplay);
+        cardDisplay.liftUp();
         
         this.emit('card-selected-changed', this.selectedCards);
     }
 
-    public isCardSelected(card: PlayingCardDisplay): boolean {
-        return this.selectedCards.includes(card);
+    public isCardSelected(card: PlayingCard): boolean {
+        return this.selectedCards.some(cardDisplay => cardDisplay.getCard() === card);
     }
 
-    public getSelectedCards(): PlayingCardDisplay[] {
-        return [...this.selectedCards];
+    public getSelectedCards(): PlayingCard[] {
+        return this.selectedCards.map(cardDisplay => cardDisplay.getCard()).filter(card => card !== undefined) as PlayingCard[];
     }
 
     public clearSelection(): void {
-        this.selectedCards.forEach(card => card.lowerDown());
+        this.selectedCards.forEach(cardDisplay => cardDisplay.lowerDown());
         this.selectedCards.length = 0;
         
         // Emit event when all selected cards are cleared
@@ -131,6 +142,8 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         if (sortType === SortType.NONE) {
             return;
         }
+
+        this.saveSortType(sortType);
         
         const cards = this.cardDisplays.map(cardDisplay => cardDisplay.getCard()).filter(card => card !== undefined);
         
@@ -150,11 +163,16 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         });
     }
 
-    public setMaxSelectedCards(maxSelectedCards: number): void {
-        this.maxSelectedCards = maxSelectedCards;
+    private applyCurrentSortType(): void {
+        const sortType = this.loadSortType();
+        this.applySorting(sortType);
     }
 
-    public getMaxSelectedCards(): number {
-        return this.maxSelectedCards;
+    private saveSortType(sortType: SortType): void {
+        LocalStorage.getInstance().set('hand_sort_type', sortType);
+    }
+
+    private loadSortType(): SortType {
+        return LocalStorage.getInstance().get('hand_sort_type', SortType.NONE) as SortType;
     }
 }   

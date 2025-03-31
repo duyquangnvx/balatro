@@ -6,7 +6,7 @@ import { PlayingCardDisplay } from "../playing-card-display";
 export class DeckArea extends CardArea<PlayingCardDisplay> {
     private totalCards: number;
 
-    protected override calculateCardTransformAt(index: number): CardTransform {
+    protected override calculateCardRelativeTransformAt(index: number): CardTransform {
         // Display as a stack with slight offset for each card
         const offsetX = 0.3;
         const offsetY = -0.3;

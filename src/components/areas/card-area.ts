@@ -2,7 +2,7 @@ import { Scene } from "phaser";
 import { Logger } from "../../core/logger";
 import { CardDisplay } from "../card-display";
 import { Card } from "../../objects/card";
-
+import { BoardManager } from "../../managers/board-manager";
 export type AreaProps = {
     x: number,
     y: number,
@@ -20,6 +20,8 @@ export type CardTransform = {
 }
 
 export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events.EventEmitter {
+    protected readonly boardManager: BoardManager;
+    
     protected readonly props: AreaProps;
     protected readonly cardDisplays: T[];
 
@@ -33,8 +35,11 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
 
     protected scene: Scene;
 
-    constructor(scene: Scene, config: AreaProps) {
+    constructor(scene: Scene, config: AreaProps, boardManager: BoardManager) {
         super();
+
+        this.boardManager = boardManager;
+
         this.scene = scene;
         this.cardDisplays = [];
         this.props = config;
@@ -80,6 +85,10 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
 
         return removedCardDisplay;
     }
+
+    public removeCardDisplays(cardDisplays: T[]): void {
+        cardDisplays.forEach(cardDisplay => this.removeCardDisplay(cardDisplay));
+    }
     
     /**
      * Find a card display from this area
@@ -124,7 +133,7 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
         }
 
         this.cardDisplays.forEach((card, index) => {
-            const { x, y, rotation, depth } = this.calculateCardTransformAt(index);
+            const { x, y, rotation, depth } = this.calculateCardRelativeTransformAt(index);
             card.setPosition(x, y);
             card.setRotation(rotation);
             card.setDepth(depth);
@@ -137,7 +146,7 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
      */
     protected autoArrangeCards(): void {
         this.cardDisplays.forEach((card, index) => {
-            const targetTransform = this.calculateCardTransformAt(index);
+            const targetTransform = this.calculateCardRelativeTransformAt(index);
             
             this.cardTargetTransforms.set(card, targetTransform);
 
@@ -153,29 +162,19 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
     }
 
     /**
-     * Calculate the transform for a card at a given index.
+     * Calculate the relative transform for a card at a given index.
      * This is used to determine the position, rotation, and depth of a card.
      * Override this in subclasses to change the arrangement logic.
      * @param index The index of the card to calculate the transform for.
      * @returns The transform for the card.
      */
-    protected calculateCardTransformAt(index: number): CardTransform {
-        // Default basic grid arrangement
-        const cardWidth = 140 * 0.8; // Using default card dimensions and scale
-        const cardHeight = 200 * 0.8;
-        const padding = 10;
-        
-        const cols = Math.floor((this.props.width - padding) / (cardWidth + padding));
-        
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-
+    protected calculateCardRelativeTransformAt(index: number): CardTransform {
         return {
-            x: this.props.x + (col * (cardWidth + padding)) - (this.props.width / 2) + (cardWidth / 2) + padding,
-            y: this.props.y + (row * (cardHeight + padding)) - (this.props.height / 2) + (cardHeight / 2) + padding,
-            rotation: (this.props.rotation ?? 0) + 0,
+            x: this.props.x,
+            y: this.props.y,
+            rotation: this.props.rotation ?? 0,
             depth: (this.props.depth ?? 0) + index
-        };
+        }
     }
 
     private setupCardInteraction(card: T): void {

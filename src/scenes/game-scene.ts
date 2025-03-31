@@ -9,7 +9,7 @@ import { BoardManager } from "../managers/board-manager";
 import { wait } from "../utils/game-utils";
 import { PlayingCard } from "../objects/playing-card";
 import { ActionPanel } from "../ui/action-panel";
-import { Toast } from "../ui/toast";
+import { PlayingCardDisplay } from "../components/playing-card-display";
 
 const SCENE_CONFIG = {
     DECK: {
@@ -85,13 +85,13 @@ export class GameScene extends BaseScene {
     }
     
     private setupBoard(): void {
-        this.deckDisplay = new DeckArea(this, SCENE_CONFIG.DECK);
+        this.deckDisplay = new DeckArea(this, SCENE_CONFIG.DECK, this.boardManager);
         this.deckDisplay.initCards(GAME_CONFIG.INITIAL_DECK_SIZE);
         this.deckDisplay.setAutoArrange(true);
         
 
-        this.handDisplay = new HandArea(this, SCENE_CONFIG.HAND);
-        this.discardDisplay = new CardArea(this, SCENE_CONFIG.DISCARD);
+        this.handDisplay = new HandArea(this, SCENE_CONFIG.HAND, this.boardManager);
+        this.discardDisplay = new CardArea(this, SCENE_CONFIG.DISCARD, this.boardManager);
         
         // Initialize the action panel
         this.actionPanel = new ActionPanel(this, {
@@ -139,34 +139,39 @@ export class GameScene extends BaseScene {
     /**
      * Handler for Play Hand button
      */
-    private onPlayHand(): void {
+    private async onPlayHand(): Promise<void> {
         const selectedCards = this.handDisplay.getSelectedCards();
-        if (selectedCards.length > 0) {
-            const cards = selectedCards.map(display => display.getCard()).filter(card => card !== undefined) as PlayingCard[];
-            this.animatePlayCards(cards);
+        if (selectedCards.length === 0) {
+            return;
         }
+
+        const newCards = this.boardManager.discardCards(selectedCards);
+
+        await this.animatePlayCards(selectedCards);
+
+        await wait(200);
+        await this.animateDealCards(newCards);
     }
 
     /**
      * Handler for Discard button
      */
-    private onDiscard(): void {
+    private async onDiscard(): Promise<void> {
         const selectedCards = this.handDisplay.getSelectedCards();
-        if (selectedCards.length > 0) {
-            const cards = selectedCards.map(display => display.getCard()).filter(card => card !== undefined) as PlayingCard[];
-            this.animateDiscardCards(cards);
-            
-            
+        if (selectedCards.length === 0) {
+            return;
         }
+
+        const newCards = this.boardManager.discardCards(selectedCards);
+
+        await this.animateDiscardCards(selectedCards);
+
+        await wait(200);
+        await this.animateDealCards(newCards);
     }
 
     async animatePlayCards(cards: PlayingCard[]): Promise<void> {
-        for (const card of cards) {
-            const cardDisplay = this.handDisplay.findCardDisplay(card);
-            if (cardDisplay) {
-                // todo: Animate card playing
-            }
-        }
+  
     } 
 
     /**
@@ -177,9 +182,12 @@ export class GameScene extends BaseScene {
         for (const card of cards) {
             const cardDisplay = this.handDisplay.findCardDisplay(card);
             if (cardDisplay) {
+                this.handDisplay.removeCardDisplay(cardDisplay);
+                this.discardDisplay.addCardDisplay(cardDisplay);
+
                 cardDisplay.setFlipped(false);
                 cardDisplay.animateFlip(false);
-                this.discardDisplay.addCardDisplay(cardDisplay);
+
                 await wait(100);
             }
         }
