@@ -42,6 +42,12 @@ const SCENE_CONFIG = {
         y: GAME_CONFIG.SCREEN_HEIGHT - 60,
         width: 600,
         height: 80
+    },
+    BLIND_INFO: {
+        x: GAME_CONFIG.SCREEN_WIDTH / 2,
+        y: 80,
+        width: 600,
+        height: 100
     }
 }
 
@@ -50,6 +56,13 @@ export class GameScene extends BaseScene {
     private handDisplay: HandArea;
     private discardDisplay: CardArea;
     private actionPanel: ActionPanel;
+    
+    // UI elements cho Blind
+    private blindInfoContainer: Phaser.GameObjects.Container;
+    private blindNameText: Phaser.GameObjects.Text;
+    private blindRequiredScoreText: Phaser.GameObjects.Text;
+    private blindEffectText: Phaser.GameObjects.Text;
+    private anteText: Phaser.GameObjects.Text;
 
     private readonly gameManager: GameManager;
     private readonly boardManager: BoardManager;
@@ -88,6 +101,8 @@ export class GameScene extends BaseScene {
         this.runManager.startNewRun();
 
         this.setupBoard();
+        this.setupBlindInfo();
+        this.updateBlindInfo();
 
         this.newGame();
     }
@@ -121,6 +136,114 @@ export class GameScene extends BaseScene {
         
         // Link the action panel to the hand area
         this.actionPanel.setHandArea(this.handDisplay);
+    }
+    
+    /**
+     * Create UI to display current Blind information
+     */
+    private setupBlindInfo(): void {
+        // Create container
+        this.blindInfoContainer = this.add.container(
+            SCENE_CONFIG.BLIND_INFO.x,
+            SCENE_CONFIG.BLIND_INFO.y
+        );
+        
+        // Background
+        const bg = this.add.rectangle(
+            0, 0,
+            SCENE_CONFIG.BLIND_INFO.width,
+            SCENE_CONFIG.BLIND_INFO.height,
+            0x000000, 0.7
+        );
+        bg.setOrigin(0.5);
+        this.blindInfoContainer.add(bg);
+        
+        // Text hiển thị tên Ante
+        this.anteText = this.add.text(
+            -SCENE_CONFIG.BLIND_INFO.width / 2 + 10,
+            -SCENE_CONFIG.BLIND_INFO.height / 2 + 10,
+            "Ante: ", 
+            { 
+                font: '16px Arial', 
+                color: '#ffffff',
+                align: 'left'
+            }
+        );
+        this.blindInfoContainer.add(this.anteText);
+        
+        // Text to display Blind name
+        this.blindNameText = this.add.text(
+            0,
+            -20,
+            "Blind Name", 
+            { 
+                font: '20px Arial', 
+                color: '#ffffff',
+                align: 'center'
+            }
+        );
+        this.blindNameText.setOrigin(0.5, 0.5);
+        this.blindInfoContainer.add(this.blindNameText);
+        
+        // Text to display required score
+        this.blindRequiredScoreText = this.add.text(
+            0,
+            10,
+            "Required Score: 0", 
+            { 
+                font: '18px Arial', 
+                color: '#ffff00',
+                align: 'center'
+            }
+        );
+        this.blindRequiredScoreText.setOrigin(0.5, 0.5);
+        this.blindInfoContainer.add(this.blindRequiredScoreText);
+        
+        // Text to display special effect (if any)
+        this.blindEffectText = this.add.text(
+            0,
+            35,
+            "", 
+            { 
+                font: '16px Arial', 
+                color: '#ff8888',
+                align: 'center'
+            }
+        );
+        this.blindEffectText.setOrigin(0.5, 0.5);
+        this.blindInfoContainer.add(this.blindEffectText);
+    }
+    
+    /**
+     * Update current Blind information
+     */
+    private updateBlindInfo(): void {
+        const currentAnte = this.runManager.getCurrentAnte();
+        const currentBlind = this.runManager.getCurrentBlind();
+        
+        if (!currentAnte || !currentBlind) {
+            this.blindInfoContainer.setVisible(false);
+            return;
+        }
+        
+        this.blindInfoContainer.setVisible(true);
+        
+        // Update Ante name
+        this.anteText.setText(`Ante: ${currentAnte.config.name}`);
+        
+        // Update Blind name
+        this.blindNameText.setText(currentBlind.config.name);
+        
+        // Update required score
+        this.blindRequiredScoreText.setText(`Required Score: ${currentBlind.requiredScore}`);
+        
+        // Update special effect (if any)
+        if (currentBlind.config.effect) {
+            this.blindEffectText.setText(currentBlind.config.effect);
+            this.blindEffectText.setVisible(true);
+        } else {
+            this.blindEffectText.setVisible(false);
+        }
     }
 
     async newGame(): Promise<void> {
@@ -171,11 +294,39 @@ export class GameScene extends BaseScene {
         // Cập nhật điểm số
         this.scoreManager.updateRoundScore(scoreResult.totalScore);
         
+        // Kiểm tra xem điểm có đủ để vượt qua Blind hiện tại không
+        const blindCompleted = this.runManager.checkBlindCompleted(scoreResult.totalScore);
+        if (blindCompleted) {
+            // Hiển thị thông báo vượt qua Blind
+            Toast.getInstance().success(
+                `Vượt qua ${this.runManager.getCurrentBlind()?.config.name} thành công!`,
+                { position: 'top', duration: 2000 }
+            );
+            
+            // Chuyển đến Blind tiếp theo
+            const hasMoreBlinds = this.runManager.advanceToNextBlind();
+            
+            if (!hasMoreBlinds) {
+                // Kết thúc run
+                Toast.getInstance().success(
+                    "Chúc mừng! Bạn đã hoàn thành run!",
+                    { position: 'middle', duration: 3000 }
+                );
+                // TODO: Hiển thị màn hình kết thúc
+            } else {
+                // Cập nhật thông tin Blind mới
+                this.updateBlindInfo();
+            }
+        }
+        
         // Tiếp tục với logic hiện tại
         const newCards = this.boardManager.discardCards(selectedCards);
         await this.animatePlayCards(selectedCards);
         await wait(200);
         await this.animateDealCards(newCards);
+        
+        // Xóa bài đã chọn sau khi đã xử lý xong
+        this.handDisplay.clearSelection();
     }
 
     /**
@@ -193,10 +344,12 @@ export class GameScene extends BaseScene {
 
         await wait(200);
         await this.animateDealCards(newCards);
+        
+        // Xóa bài đã chọn sau khi đã xử lý xong
+        this.handDisplay.clearSelection();
     }
 
     async animatePlayCards(cards: PlayingCard[]): Promise<void> {
-  
     } 
 
     /**

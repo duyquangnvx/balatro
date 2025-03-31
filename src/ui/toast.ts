@@ -3,7 +3,8 @@ import { Scene } from 'phaser';
 export enum ToastType {
     INFO = 'info',
     WARNING = 'warning',
-    ERROR = 'error'
+    ERROR = 'error',
+    SUCCESS = 'success'
 }
 
 export interface ToastOptions {
@@ -27,7 +28,8 @@ export class Toast {
     private readonly typeColors = {
         [ToastType.INFO]: 0x0096FF,
         [ToastType.WARNING]: 0xFFA500,
-        [ToastType.ERROR]: 0xFF4440
+        [ToastType.ERROR]: 0xFF4440,
+        [ToastType.SUCCESS]: 0x32CD32
     };
 
     private constructor(scene: Scene) {
@@ -145,6 +147,13 @@ export class Toast {
      */
     public info(message: string, options?: Omit<ToastOptions, 'type'>): void {
         this.show(message, { ...options, type: ToastType.INFO });
+    }
+    
+    /**
+     * Show success toast
+     */
+    public success(message: string, options?: Omit<ToastOptions, 'type'>): void {
+        this.show(message, { ...options, type: ToastType.SUCCESS });
     }
     
     /**
