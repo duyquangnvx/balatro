@@ -175,4 +175,13 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
     private loadSortType(): SortType {
         return LocalStorage.getInstance().get('hand_sort_type', SortType.NONE) as SortType;
     }
+
+    /**
+     * Remove currently selected cards from hand
+     */
+    public removeSelectedCards(): void {
+        const cardsToRemove = [...this.selectedCards];
+        cardsToRemove.forEach(card => this.removeCardDisplay(card));
+        this.clearSelection();
+    }
 }   

@@ -5,20 +5,8 @@ import { GAME_CONFIG } from "../config/game-config";
 import { RunManager } from "./run-manager";
 import { 
     PokerHandType,
-    isRoyalFlush,
-    isStraightFlush,
-    isFourOfAKind,
-    isFullHouse,
-    isFlush,
-    isStraight,
-    isThreeOfAKind,
-    isTwoPair,
-    isPair,
-    getHighestCard,
     getCardPointValue,
-    isFiveOfAKind,
-    isFlushHouse,
-    isFlushFive
+    evaluatePokerHand
 } from "../utils/poker-utils";
 
 /**
@@ -80,127 +68,14 @@ export class ScoreManager {
         // Clone array to avoid affecting the original cards
         const handCards = [...cards];
         
-        // The poker hands are checked in order from highest to lowest (priority for stronger hands)
-        if (handCards.length < 1) {
-            return this.createScoreResult(PokerHandType.HIGH_CARD, 0, "No cards played");
-        }
+        // Evaluate poker hand to get the highest combination
+        const evaluationResult = evaluatePokerHand(handCards);
         
-        // Check secret hands (secret hands)
-        // Flush Five (highest in secret hands)
-        if (isFlushFive(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.FLUSH_FIVE, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.FLUSH_FIVE], 
-                "Flush Five: 5 lá cùng giá trị và cùng chất"
-            );
-        }
-        
-        // Five of a Kind
-        if (isFiveOfAKind(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.FIVE_OF_A_KIND, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.FIVE_OF_A_KIND], 
-                "Five of a Kind: 5 lá cùng giá trị"
-            );
-        }
-        
-        // Flush House
-        if (isFlushHouse(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.FLUSH_HOUSE, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.FLUSH_HOUSE], 
-                "Flush House: Full House với tất cả lá cùng chất"
-            );
-        }
-
-        // Check regular hands (regular hands)
-        // Royal Flush
-        if (isRoyalFlush(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.ROYAL_FLUSH, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.ROYAL_FLUSH], 
-                "Royal Flush: 10, J, Q, K, A cùng chất"
-            );
-        }
-
-        // Straight Flush
-        if (isStraightFlush(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.STRAIGHT_FLUSH, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.STRAIGHT_FLUSH], 
-                "Straight Flush: 5 lá liên tiếp cùng chất"
-            );
-        }
-
-        // Four of a Kind
-        if (isFourOfAKind(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.FOUR_OF_A_KIND, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.FOUR_OF_A_KIND], 
-                "Four of a Kind: 4 lá cùng giá trị"
-            );
-        }
-
-        // Full House
-        if (isFullHouse(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.FULL_HOUSE, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.FULL_HOUSE], 
-                "Full House: 3 lá cùng giá trị + 2 lá cùng giá trị khác"
-            );
-        }
-
-        // Flush
-        if (isFlush(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.FLUSH, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.FLUSH], 
-                "Flush: 5 lá cùng chất"
-            );
-        }
-
-        // Straight
-        if (isStraight(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.STRAIGHT, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.STRAIGHT], 
-                "Straight: 5 lá liên tiếp"
-            );
-        }
-
-        // Three of a Kind
-        if (isThreeOfAKind(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.THREE_OF_A_KIND, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.THREE_OF_A_KIND], 
-                "Three of a Kind: 3 lá cùng giá trị"
-            );
-        }
-
-        // Two Pair
-        if (isTwoPair(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.TWO_PAIR, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.TWO_PAIR], 
-                "Two Pair: 2 cặp khác nhau"
-            );
-        }
-
-        // Pair
-        if (isPair(handCards)) {
-            return this.createScoreResult(
-                PokerHandType.PAIR, 
-                GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.PAIR], 
-                "Pair: 2 lá cùng giá trị"
-            );
-        }
-
-        // If no combination, return High Card
-        const highestCard = getHighestCard(handCards);
+        // Get score for the combination
         return this.createScoreResult(
-            PokerHandType.HIGH_CARD, 
-            GAME_CONFIG.POKER_HAND_SCORES[PokerHandType.HIGH_CARD], 
-            `High Card: Lá cao nhất là ${highestCard.getRank()}`
+            evaluationResult.handType,
+            GAME_CONFIG.POKER_HAND_SCORES[evaluationResult.handType] || 0,
+            evaluationResult.description
         );
     }
 
@@ -322,5 +197,23 @@ export class ScoreManager {
     private loadData(): void {
         const storage = LocalStorage.getInstance();
         this.highScores = storage.get(this.STORAGE_KEYS.HIGH_SCORES, []) as number[];
+    }
+
+    /**
+     * Get current money
+     */
+    public getMoney(): number {
+        return this.runManager.getMoney();
+    }
+    
+    /**
+     * Update score and money based on score result
+     * @param score Score to add
+     */
+    public updateScoreAndMoney(score: number): void {
+        this.updateRoundScore(score);
+        
+        // Also update money in run manager
+        this.runManager.updateMoney(score);
     }
 } 

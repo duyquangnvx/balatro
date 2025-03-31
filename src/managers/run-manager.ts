@@ -340,4 +340,54 @@ export class RunManager {
             this.runState = savedRunState;
         }
     }
+
+    /**
+     * Get the current ante index (0-based)
+     */
+    public getCurrentAnteIndex(): number {
+        return this.runState.currentAnteIndex;
+    }
+    
+    /**
+     * Get total number of antes in the run
+     */
+    public getTotalAntes(): number {
+        return this.runState.antes.length;
+    }
+    
+    /**
+     * Get the current round (1-based)
+     * In this implementation, we simply count rounds as ante index + 1
+     */
+    public getCurrentRound(): number {
+        return this.runState.currentAnteIndex + 1;
+    }
+    
+    /**
+     * Get remaining hands for current blind/ante
+     * This is a placeholder - update with actual logic
+     */
+    public getRemainingHands(): number {
+        return 4; // Placeholder value
+    }
+    
+    /**
+     * Get remaining discards for current blind/ante
+     * This is a placeholder - update with actual logic
+     */
+    public getRemainingDiscards(): number {
+        return 4; // Placeholder value
+    }
+    
+    /**
+     * Check if given score completes the current blind
+     * @param score The score to check
+     * @returns true if the score is enough to complete the blind
+     */
+    public isCurrentBlindCompleted(score: number): boolean {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return false;
+        
+        return score >= currentBlind.requiredScore;
+    }
 } 

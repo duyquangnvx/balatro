@@ -13,8 +13,15 @@ import { PlayingCard } from "../objects/playing-card";
 import { ActionPanel } from "../ui/action-panel";
 import { PlayingCardDisplay } from "../components/playing-card-display";
 import { Toast } from "../ui/toast";
+import { BlindPanel } from '../ui/blind-panel';
 
 const SCENE_CONFIG = {
+    BACKGROUND: {
+        x: GAME_CONFIG.SCREEN_WIDTH / 2,
+        y: GAME_CONFIG.SCREEN_HEIGHT / 2,
+        width: GAME_CONFIG.SCREEN_WIDTH,
+        height: GAME_CONFIG.SCREEN_HEIGHT
+    },
     DECK: {
         x: GAME_CONFIG.SCREEN_WIDTH - 100,
         y: GAME_CONFIG.SCREEN_HEIGHT - 120,
@@ -43,11 +50,11 @@ const SCENE_CONFIG = {
         width: 600,
         height: 80
     },
-    BLIND_INFO: {
-        x: GAME_CONFIG.SCREEN_WIDTH / 2,
-        y: 80,
-        width: 600,
-        height: 100
+    BLIND_PANEL: {
+        x: 150,
+        y: GAME_CONFIG.SCREEN_HEIGHT / 2,
+        width: 300,
+        height: 600
     }
 }
 
@@ -56,13 +63,7 @@ export class GameScene extends BaseScene {
     private handDisplay: HandArea;
     private discardDisplay: CardArea;
     private actionPanel: ActionPanel;
-    
-    // UI elements cho Blind
-    private blindInfoContainer: Phaser.GameObjects.Container;
-    private blindNameText: Phaser.GameObjects.Text;
-    private blindRequiredScoreText: Phaser.GameObjects.Text;
-    private blindEffectText: Phaser.GameObjects.Text;
-    private anteText: Phaser.GameObjects.Text;
+    private blindPanel: BlindPanel;
 
     private readonly gameManager: GameManager;
     private readonly boardManager: BoardManager;
@@ -89,21 +90,15 @@ export class GameScene extends BaseScene {
 
     async create(): Promise<void> {
         // Create a background
-        const width = GAME_CONFIG.SCREEN_WIDTH;  
-        const height = GAME_CONFIG.SCREEN_HEIGHT;
-        this.add.image(width / 2, height / 2, 'background');
-
-        // Khởi tạo Toast
-        Toast.init(this);
-        
-        // Khởi tạo ScoreManager và RunManager cho game mới
-        this.scoreManager.startNewGame();
-        this.runManager.startNewRun();
+        const background = this.add.image(SCENE_CONFIG.BACKGROUND.x, SCENE_CONFIG.BACKGROUND.y, 'background');
+        background.setDisplaySize(SCENE_CONFIG.BACKGROUND.width, SCENE_CONFIG.BACKGROUND.height);
 
         this.setupBoard();
-        this.setupBlindInfo();
-        this.updateBlindInfo();
+        this.setupBlindPanel();
 
+        // Initialize ScoreManager and RunManager for new game
+        this.scoreManager.startNewGame();
+        this.runManager.startNewRun();
         this.newGame();
     }
 
@@ -139,81 +134,25 @@ export class GameScene extends BaseScene {
     }
     
     /**
-     * Create UI to display current Blind information
+     * Setup Blind Panel for displaying game progress information
      */
-    private setupBlindInfo(): void {
-        // Create container
-        this.blindInfoContainer = this.add.container(
-            SCENE_CONFIG.BLIND_INFO.x,
-            SCENE_CONFIG.BLIND_INFO.y
-        );
+    private setupBlindPanel(): void {
+        // Create the blind panel
+        this.blindPanel = new BlindPanel(this, SCENE_CONFIG.BLIND_PANEL);
         
-        // Background
-        const bg = this.add.rectangle(
-            0, 0,
-            SCENE_CONFIG.BLIND_INFO.width,
-            SCENE_CONFIG.BLIND_INFO.height,
-            0x000000, 0.7
-        );
-        bg.setOrigin(0.5);
-        this.blindInfoContainer.add(bg);
+        // Update the panel with current blind information
+        this.updateBlindInfo();
         
-        // Text hiển thị tên Ante
-        this.anteText = this.add.text(
-            -SCENE_CONFIG.BLIND_INFO.width / 2 + 10,
-            -SCENE_CONFIG.BLIND_INFO.height / 2 + 10,
-            "Ante: ", 
-            { 
-                font: '16px Arial', 
-                color: '#ffffff',
-                align: 'left'
-            }
-        );
-        this.blindInfoContainer.add(this.anteText);
+        // Initialize score manager and money
+        this.blindPanel.updateMoney(this.scoreManager.getMoney());
         
-        // Text to display Blind name
-        this.blindNameText = this.add.text(
-            0,
-            -20,
-            "Blind Name", 
-            { 
-                font: '20px Arial', 
-                color: '#ffffff',
-                align: 'center'
-            }
+        // Set initial hands and discards
+        this.blindPanel.updateHandsAndDiscards(
+            this.runManager.getRemainingHands(),
+            this.runManager.getRemainingDiscards()
         );
-        this.blindNameText.setOrigin(0.5, 0.5);
-        this.blindInfoContainer.add(this.blindNameText);
-        
-        // Text to display required score
-        this.blindRequiredScoreText = this.add.text(
-            0,
-            10,
-            "Required Score: 0", 
-            { 
-                font: '18px Arial', 
-                color: '#ffff00',
-                align: 'center'
-            }
-        );
-        this.blindRequiredScoreText.setOrigin(0.5, 0.5);
-        this.blindInfoContainer.add(this.blindRequiredScoreText);
-        
-        // Text to display special effect (if any)
-        this.blindEffectText = this.add.text(
-            0,
-            35,
-            "", 
-            { 
-                font: '16px Arial', 
-                color: '#ff8888',
-                align: 'center'
-            }
-        );
-        this.blindEffectText.setOrigin(0.5, 0.5);
-        this.blindInfoContainer.add(this.blindEffectText);
     }
-    
+
     /**
      * Update current Blind information
      */
@@ -222,28 +161,25 @@ export class GameScene extends BaseScene {
         const currentBlind = this.runManager.getCurrentBlind();
         
         if (!currentAnte || !currentBlind) {
-            this.blindInfoContainer.setVisible(false);
             return;
         }
         
-        this.blindInfoContainer.setVisible(true);
+        // Update Blind panel with current blind information
+        this.blindPanel.updateBlind(
+            currentBlind.config.type,
+            currentBlind.config.name,
+            Math.floor(currentAnte.config.baseChips * currentBlind.config.baseMultiplier)
+        );
         
-        // Update Ante name
-        this.anteText.setText(`Ante: ${currentAnte.config.name}`);
+        // Update Ante and round information
+        this.blindPanel.updateAnteAndRound(
+            this.runManager.getCurrentAnteIndex() + 1,
+            this.runManager.getTotalAntes(),
+            this.runManager.getCurrentRound()
+        );
         
-        // Update Blind name
-        this.blindNameText.setText(currentBlind.config.name);
-        
-        // Update required score
-        this.blindRequiredScoreText.setText(`Required Score: ${currentBlind.requiredScore}`);
-        
-        // Update special effect (if any)
-        if (currentBlind.config.effect) {
-            this.blindEffectText.setText(currentBlind.config.effect);
-            this.blindEffectText.setVisible(true);
-        } else {
-            this.blindEffectText.setVisible(false);
-        }
+        // Update score if available
+        this.blindPanel.updateScore(this.scoreManager.getRoundScore());
     }
 
     async newGame(): Promise<void> {
@@ -274,63 +210,71 @@ export class GameScene extends BaseScene {
     }
 
     /**
-     * Handler for Play Hand button
+     * Handle play hand action
      */
     private async onPlayHand(): Promise<void> {
+        // Get selected cards
         const selectedCards = this.handDisplay.getSelectedCards();
+        
+        // Check if there are selected cards
         if (selectedCards.length === 0) {
             return;
         }
 
-        // Tính điểm dựa trên bài được chơi
+        // Calculate score for the hand
         const scoreResult = this.scoreManager.calculateScore(selectedCards);
         
-        // Hiển thị kết quả tính điểm
+        // Update the score and money
+        this.scoreManager.updateScoreAndMoney(scoreResult.score);
+        
+        // Update UI
+        this.blindPanel.updateScore(scoreResult.score);
+        this.blindPanel.updateMoney(this.scoreManager.getMoney());
+        
+        // Show toast with score result
         Toast.getInstance().info(
-            `${scoreResult.description}\nĐiểm: ${scoreResult.score} x ${scoreResult.multiplier} = ${scoreResult.totalScore}`,
+            `${scoreResult.combination}: ${scoreResult.description}\nScore: ${scoreResult.score} points!`,
             { position: 'middle', duration: 3000 }
         );
         
-        // Cập nhật điểm số
-        this.scoreManager.updateRoundScore(scoreResult.totalScore);
-        
-        // Kiểm tra xem điểm có đủ để vượt qua Blind hiện tại không
-        const blindCompleted = this.runManager.checkBlindCompleted(scoreResult.totalScore);
-        if (blindCompleted) {
-            // Hiển thị thông báo vượt qua Blind
-            Toast.getInstance().success(
-                `Vượt qua ${this.runManager.getCurrentBlind()?.config.name} thành công!`,
-                { position: 'top', duration: 2000 }
-            );
+        // Check if current blind is completed
+        if (this.runManager.isCurrentBlindCompleted(scoreResult.score)) {
+            // Show success message
+            const currentBlind = this.runManager.getCurrentBlind();
+            if (currentBlind) {
+                Toast.getInstance().success(`${currentBlind.config.name} cleared!`);
+            }
             
-            // Chuyển đến Blind tiếp theo
+            // Move to next blind
             const hasMoreBlinds = this.runManager.advanceToNextBlind();
             
+            // Update blind info
+            this.updateBlindInfo();
+            
+            // If no more blinds, show game complete message
             if (!hasMoreBlinds) {
-                // Kết thúc run
-                Toast.getInstance().success(
-                    "Chúc mừng! Bạn đã hoàn thành run!",
-                    { position: 'middle', duration: 3000 }
-                );
-                // TODO: Hiển thị màn hình kết thúc
-            } else {
-                // Cập nhật thông tin Blind mới
-                this.updateBlindInfo();
+                Toast.getInstance().success("Game complete! You've finished all blinds!");
             }
         }
         
-        // Tiếp tục với logic hiện tại
+        // Remove played cards from hand
+        this.handDisplay.removeSelectedCards();
+        
+        // Deal new cards to replace the ones played
         const newCards = this.boardManager.discardCards(selectedCards);
         await this.animatePlayCards(selectedCards);
         await wait(200);
         await this.animateDealCards(newCards);
         
-        // Xóa bài đã chọn sau khi đã xử lý xong
-        this.handDisplay.clearSelection();
+        // Update hands count in UI
+        this.blindPanel.updateHandsAndDiscards(
+            this.runManager.getRemainingHands(),
+            this.runManager.getRemainingDiscards()
+        );
     }
 
     /**
-     * Handler for Discard button
+     * Handle discard action
      */
     private async onDiscard(): Promise<void> {
         const selectedCards = this.handDisplay.getSelectedCards();
@@ -347,6 +291,12 @@ export class GameScene extends BaseScene {
         
         // Xóa bài đã chọn sau khi đã xử lý xong
         this.handDisplay.clearSelection();
+
+        // Update discards count in UI
+        this.blindPanel.updateHandsAndDiscards(
+            this.runManager.getRemainingHands(),
+            this.runManager.getRemainingDiscards()
+        );
     }
 
     async animatePlayCards(cards: PlayingCard[]): Promise<void> {

@@ -1,10 +1,10 @@
 import { Scene } from 'phaser';
 
 export enum ToastType {
-    INFO = 'info',
-    WARNING = 'warning',
-    ERROR = 'error',
-    SUCCESS = 'success'
+    INFO = 'INFO',
+    ERROR = 'ERROR',
+    WARNING = 'WARNING',
+    SUCCESS = 'SUCCESS'
 }
 
 export interface ToastOptions {
@@ -153,7 +153,12 @@ export class Toast {
      * Show success toast
      */
     public success(message: string, options?: Omit<ToastOptions, 'type'>): void {
-        this.show(message, { ...options, type: ToastType.SUCCESS });
+        this.show(message, { 
+            ...options, 
+            type: ToastType.SUCCESS,
+            duration: options?.duration || 3000,
+            position: options?.position || 'top'
+        });
     }
     
     /**

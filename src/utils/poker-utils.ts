@@ -22,6 +22,14 @@ export enum PokerHandType {
 }
 
 /**
+ * Result of poker hand evaluation
+ */
+export interface PokerHandEvaluationResult {
+    handType: PokerHandType;
+    description: string;
+}
+
+/**
  * Check if the hand is a Royal Flush
  * (10, J, Q, K, A same suit)
  */
@@ -234,4 +242,123 @@ export function getHighestCard(cards: PlayingCard[]): PlayingCard {
     return cards.reduce((highest, current) => {
         return getCardValue(current) > getCardValue(highest) ? current : highest;
     }, cards[0]);
+}
+
+/**
+ * Evaluate a poker hand and return the highest possible combination
+ * @param cards The cards to evaluate
+ * @returns The evaluation result containing hand type and description
+ */
+export function evaluatePokerHand(cards: PlayingCard[]): PokerHandEvaluationResult {
+    if (cards.length < 1) {
+        return {
+            handType: PokerHandType.HIGH_CARD,
+            description: "No cards played"
+        };
+    }
+    
+    // Check secret hands (highest priority)
+    // Flush Five
+    if (isFlushFive(cards)) {
+        return {
+            handType: PokerHandType.FLUSH_FIVE,
+            description: "Flush Five: 5 lá cùng giá trị và cùng chất"
+        };
+    }
+    
+    // Five of a Kind
+    if (isFiveOfAKind(cards)) {
+        return {
+            handType: PokerHandType.FIVE_OF_A_KIND,
+            description: "Five of a Kind: 5 lá cùng giá trị"
+        };
+    }
+    
+    // Flush House
+    if (isFlushHouse(cards)) {
+        return {
+            handType: PokerHandType.FLUSH_HOUSE,
+            description: "Flush House: Full House với tất cả lá cùng chất"
+        };
+    }
+
+    // Check regular hands
+    // Royal Flush
+    if (isRoyalFlush(cards)) {
+        return {
+            handType: PokerHandType.ROYAL_FLUSH,
+            description: "Royal Flush: 10, J, Q, K, A cùng chất"
+        };
+    }
+
+    // Straight Flush
+    if (isStraightFlush(cards)) {
+        return {
+            handType: PokerHandType.STRAIGHT_FLUSH,
+            description: "Straight Flush: 5 lá liên tiếp cùng chất"
+        };
+    }
+
+    // Four of a Kind
+    if (isFourOfAKind(cards)) {
+        return {
+            handType: PokerHandType.FOUR_OF_A_KIND,
+            description: "Four of a Kind: 4 lá cùng giá trị"
+        };
+    }
+
+    // Full House
+    if (isFullHouse(cards)) {
+        return {
+            handType: PokerHandType.FULL_HOUSE,
+            description: "Full House: 3 lá cùng giá trị + 2 lá cùng giá trị khác"
+        };
+    }
+
+    // Flush
+    if (isFlush(cards)) {
+        return {
+            handType: PokerHandType.FLUSH,
+            description: "Flush: 5 lá cùng chất"
+        };
+    }
+
+    // Straight
+    if (isStraight(cards)) {
+        return {
+            handType: PokerHandType.STRAIGHT,
+            description: "Straight: 5 lá liên tiếp"
+        };
+    }
+
+    // Three of a Kind
+    if (isThreeOfAKind(cards)) {
+        return {
+            handType: PokerHandType.THREE_OF_A_KIND,
+            description: "Three of a Kind: 3 lá cùng giá trị"
+        };
+    }
+
+    // Two Pair
+    if (isTwoPair(cards)) {
+        return {
+            handType: PokerHandType.TWO_PAIR,
+            description: "Two Pair: 2 cặp khác nhau"
+        };
+    }
+
+    // Pair
+    if (isPair(cards)) {
+        return {
+            handType: PokerHandType.PAIR,
+            description: "Pair: 2 lá cùng giá trị"
+        };
+    }
+
+    // If no combination, return High Card
+    const highestCard = getHighestCard(cards);
+    return {
+        handType: PokerHandType.HIGH_CARD,
+        description: `High Card: Lá cao nhất là ${highestCard.getRank()}`
+    };
 } 
