@@ -159,30 +159,30 @@ export class ActionPanel extends Phaser.GameObjects.Container {
     }
     
     public setHandArea(handArea: HandArea): void {
-        // Nếu đã có handArea trước đó, xóa listener cũ
+        // If there is a handArea, remove the old listener
         if (this.handArea) {
             this.handArea.off('card-selected-changed', this.updateButtonStates, this);
         }
         
         this.handArea = handArea;
         
-        // Đăng ký lắng nghe sự kiện card-selected-changed
+        // Register for the card-selected-changed event
         this.handArea.on('card-selected-changed', this.updateButtonStates, this);
         
-        // Cập nhật trạng thái ban đầu
+        // Update initial state
         this.updateButtonStates();
     }
     
     /**
-     * Cập nhật trạng thái nút dựa trên việc có card được chọn hay không
-     * @param selectedCards Danh sách card đã chọn, nếu không truyền vào sẽ lấy từ handArea
+     * Update button states based on whether there are selected cards
+     * @param selectedCards List of selected cards, if not provided, get from handArea
      */
     public updateButtonStates(selectedCards?: any[]): void {
         if (!this.handArea) {
             return;
         }
         
-        // Nếu không có selectedCards được truyền vào, lấy từ handArea
+        // If no selectedCards are provided, get from handArea
         const hasSelectedCards = selectedCards ? selectedCards.length > 0 
                                              : this.handArea.getSelectedCards().length > 0;
         

@@ -3,7 +3,7 @@ import { Logger } from "../../core/logger";
 import { CardDisplay } from "../card-display";
 import { Card } from "../../objects/card";
 
-export type CardAreaConfig = {
+export type AreaProps = {
     x: number,
     y: number,
     width: number,
@@ -20,7 +20,7 @@ export type CardTransform = {
 }
 
 export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events.EventEmitter {
-    protected readonly config: CardAreaConfig;
+    protected readonly props: AreaProps;
     protected readonly cardDisplays: T[];
 
     // Map of card id to target transform
@@ -33,11 +33,11 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
 
     protected scene: Scene;
 
-    constructor(scene: Scene, config: CardAreaConfig) {
+    constructor(scene: Scene, config: AreaProps) {
         super();
         this.scene = scene;
         this.cardDisplays = [];
-        this.config = config;
+        this.props = config;
         this.autoArrange = true;
         this.cardTargetTransforms = new Map();
 
@@ -165,16 +165,16 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
         const cardHeight = 200 * 0.8;
         const padding = 10;
         
-        const cols = Math.floor((this.config.width - padding) / (cardWidth + padding));
+        const cols = Math.floor((this.props.width - padding) / (cardWidth + padding));
         
         const col = index % cols;
         const row = Math.floor(index / cols);
 
         return {
-            x: this.config.x + (col * (cardWidth + padding)) - (this.config.width / 2) + (cardWidth / 2) + padding,
-            y: this.config.y + (row * (cardHeight + padding)) - (this.config.height / 2) + (cardHeight / 2) + padding,
-            rotation: (this.config.rotation ?? 0) + 0,
-            depth: (this.config.depth ?? 0) + index
+            x: this.props.x + (col * (cardWidth + padding)) - (this.props.width / 2) + (cardWidth / 2) + padding,
+            y: this.props.y + (row * (cardHeight + padding)) - (this.props.height / 2) + (cardHeight / 2) + padding,
+            rotation: (this.props.rotation ?? 0) + 0,
+            depth: (this.props.depth ?? 0) + index
         };
     }
 
@@ -191,12 +191,12 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
     }
     
     public getPosition(): { x: number, y: number } {
-        return { x: this.config.x, y: this.config.y };
+        return { x: this.props.x, y: this.props.y };
     }
 
     public setPosition(x: number, y: number): void {
-        this.config.x = x;
-        this.config.y = y;
+        this.props.x = x;
+        this.props.y = y;
     }
 
     public setAutoArrange(autoArrange: boolean): void {

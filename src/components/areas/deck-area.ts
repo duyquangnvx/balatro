@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { CardArea, CardAreaConfig, CardTransform } from "./card-area";
+import { CardArea, AreaProps, CardTransform } from "./card-area";
 import { PlayingCard, Rank, Suit } from "../../objects/playing-card";
 import { PlayingCardDisplay } from "../playing-card-display";
 
@@ -11,10 +11,10 @@ export class DeckArea extends CardArea<PlayingCardDisplay> {
         const offsetX = 0.3;
         const offsetY = -0.3;
         return {
-            x: this.config.x + offsetX * index,
-            y: this.config.y + offsetY * index,
-            rotation: this.config.rotation ?? 0,
-            depth: (this.config.depth ?? 0) + index
+            x: this.props.x + offsetX * index,
+            y: this.props.y + offsetY * index,
+            rotation: this.props.rotation ?? 0,
+            depth: (this.props.depth ?? 0) + index
         }
     }
 

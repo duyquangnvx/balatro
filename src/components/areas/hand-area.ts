@@ -1,7 +1,9 @@
 import { Scene } from "phaser";
-import { CardArea, CardAreaConfig, CardTransform } from "./card-area";
+import { CardArea, AreaProps, CardTransform } from "./card-area";
 import { PlayingCardDisplay } from "../playing-card-display";
 import { sortBySuitInternal, sortByRankInternal } from "../../utils/card-helpers";
+import { GAME_CONFIG } from "../../config/game-config";
+import { Toast, ToastType } from "../../ui/toast";
 
 export enum SortType {
     NONE,
@@ -12,9 +14,12 @@ export enum SortType {
 export class HandArea extends CardArea<PlayingCardDisplay> {
     private readonly selectedCards: PlayingCardDisplay[];
 
-    constructor(scene: Scene, config: CardAreaConfig) {
+    private maxSelectedCards: number;
+
+    constructor(scene: Scene, config: AreaProps, maxSelectedCards: number = GAME_CONFIG.MAX_SELECTED_CARDS) {
         super(scene, config);
         this.selectedCards = [];
+        this.maxSelectedCards = maxSelectedCards;
     }
 
     /**
@@ -37,7 +42,7 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
 
         const maxCardSpacing = 10;
         const cardWidth = this.cardDisplays[0].width;
-        const maxWidth = this.config.width;
+        const maxWidth = this.props.width;
         const gapCount = cardCount - 1;
         const totalWidthNeeded = cardWidth * cardCount;
 
@@ -50,15 +55,15 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
 
         const totalWidth = cardWidth * cardCount + cardSpacing * gapCount;
         const ratio = Phaser.Math.Linear(
-            this.config.x - totalWidth / 2,
-            this.config.x + totalWidth / 2,
+            this.props.x - totalWidth / 2,
+            this.props.x + totalWidth / 2,
             (index + 0.5) / cardCount);
 
         return {
             x: ratio,
-            y: this.config.y,
-            rotation: this.config.rotation ?? 0,
-            depth: (this.config.depth ?? 0) + index
+            y: this.props.y,
+            rotation: this.props.rotation ?? 0,
+            depth: (this.props.depth ?? 0) + index
         };
     }
     
@@ -67,19 +72,33 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
      }
     
     public selectCard(card: PlayingCardDisplay): void {
+        // Lower down card if it is already selected
+        const index = this.selectedCards.indexOf(card);
+        if (index !== -1) {
+            // If card is already selected, then unselect it
+            this.selectedCards.splice(index, 1);
+            card.lowerDown();
+            this.emit('card-selected-changed', this.selectedCards);
+            return;
+        }
+
+        // Check if the number of selected cards has reached the maximum
+        if (this.selectedCards.length >= this.maxSelectedCards) {
+            // Show warning toast
+            Toast.getInstance().warning(
+                `Cannot select more than ${this.maxSelectedCards} cards!`, 
+                { position: 'top', duration: 1500 }
+            );
+            return;
+        }
+
         if (!this.cardDisplays.includes(card)) {
             return;
         }
         
-        // Toggle selection
-        const index = this.selectedCards.indexOf(card);
-        if (index === -1) {
-            this.selectedCards.push(card);
-            card.liftUp();
-        } else {
-            this.selectedCards.splice(index, 1);
-            card.lowerDown();
-        }
+        // Add card to selected cards
+        this.selectedCards.push(card);
+        card.liftUp();
         
         this.emit('card-selected-changed', this.selectedCards);
     }
@@ -96,7 +115,7 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         this.selectedCards.forEach(card => card.lowerDown());
         this.selectedCards.length = 0;
         
-        // Emit event khi xóa hết card đã chọn
+        // Emit event when all selected cards are cleared
         this.emit('card-selected-changed', this.selectedCards);
     }
 
@@ -132,5 +151,13 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         
         // Arrange the card displays
         this.arrangeCards();
+    }
+
+    public setMaxSelectedCards(maxSelectedCards: number): void {
+        this.maxSelectedCards = maxSelectedCards;
+    }
+
+    public getMaxSelectedCards(): number {
+        return this.maxSelectedCards;
     }
 }   

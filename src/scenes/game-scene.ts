@@ -8,7 +8,8 @@ import { GameManager } from "../managers/game-manger";
 import { BoardManager } from "../managers/board-manager";
 import { wait } from "../utils/game-utils";
 import { PlayingCard } from "../objects/playing-card";
-import { ActionPanel } from "../ui/ActionPanel";
+import { ActionPanel } from "../ui/action-panel";
+import { Toast } from "../ui/toast";
 
 const SCENE_CONFIG = {
     DECK: {
@@ -23,7 +24,8 @@ const SCENE_CONFIG = {
         y: GAME_CONFIG.SCREEN_HEIGHT - 200,
         width: 600,
         height: 200,
-        depth: 200
+        depth: 200,
+        maxSelectedCards: GAME_CONFIG.MAX_SELECTED_CARDS
     },
     DISCARD: {
         x: GAME_CONFIG.SCREEN_WIDTH + 200,   
