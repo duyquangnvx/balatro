@@ -1,5 +1,5 @@
 import { BaseScene } from "./base-scene";
-import { Logger } from "../core/logger";
+import { Logger } from "../utils/logger";
 import { TransitionFade } from "./transitions/transition-scene";
 
 export class PreloadScene extends BaseScene {

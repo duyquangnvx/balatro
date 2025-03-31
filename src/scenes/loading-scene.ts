@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { Logger } from "../core/logger";
+import { Logger } from "../utils/logger";
 
 export class LoadingScene extends Phaser.Scene {
     private progressBar: Phaser.GameObjects.Rectangle;

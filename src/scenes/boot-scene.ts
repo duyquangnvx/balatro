@@ -1,4 +1,4 @@
-import { Logger } from '../core/logger';
+import { Logger } from '../utils/logger';
 import { BaseScene } from './base-scene';
 import { TransitionFade } from './transitions/transition-scene';
 import { GameManager } from '../managers/game-manger';

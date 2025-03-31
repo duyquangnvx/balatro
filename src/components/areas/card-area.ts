@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { Logger } from "../../core/logger";
+import { Logger } from "../../utils/logger";
 import { CardDisplay } from "../card-display";
 import { Card } from "../../objects/card";
 import { BoardManager } from "../../managers/board-manager";

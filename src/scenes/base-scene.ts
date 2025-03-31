@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { Logger } from "../core/logger";
+import { Logger } from "../utils/logger";
 import { LoadingScene } from "./loading-scene";
 import { Toast } from "../ui/toast";
 
