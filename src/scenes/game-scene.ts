@@ -6,10 +6,13 @@ import { HandArea, SortType } from "../components/areas/hand-area";
 import { BaseScene } from "./base-scene";
 import { GameManager } from "../managers/game-manger";
 import { BoardManager } from "../managers/board-manager";
+import { ScoreManager } from "../managers/score-manager";
+import { RunManager } from "../managers/run-manager";
 import { wait } from "../utils/game-utils";
 import { PlayingCard } from "../objects/playing-card";
 import { ActionPanel } from "../ui/action-panel";
 import { PlayingCardDisplay } from "../components/playing-card-display";
+import { Toast } from "../ui/toast";
 
 const SCENE_CONFIG = {
     DECK: {
@@ -50,11 +53,15 @@ export class GameScene extends BaseScene {
 
     private readonly gameManager: GameManager;
     private readonly boardManager: BoardManager;
+    private readonly scoreManager: ScoreManager;
+    private readonly runManager: RunManager;
 
     constructor() {
         super({ key: 'GameScene' });
         this.gameManager = GameManager.getInstance();
         this.boardManager = new BoardManager();
+        this.scoreManager = ScoreManager.getInstance();
+        this.runManager = RunManager.getInstance();
     }
     
     preload(): void {
@@ -72,6 +79,13 @@ export class GameScene extends BaseScene {
         const width = GAME_CONFIG.SCREEN_WIDTH;  
         const height = GAME_CONFIG.SCREEN_HEIGHT;
         this.add.image(width / 2, height / 2, 'background');
+
+        // Khởi tạo Toast
+        Toast.init(this);
+        
+        // Khởi tạo ScoreManager và RunManager cho game mới
+        this.scoreManager.startNewGame();
+        this.runManager.startNewRun();
 
         this.setupBoard();
 
@@ -145,10 +159,21 @@ export class GameScene extends BaseScene {
             return;
         }
 
+        // Tính điểm dựa trên bài được chơi
+        const scoreResult = this.scoreManager.calculateScore(selectedCards);
+        
+        // Hiển thị kết quả tính điểm
+        Toast.getInstance().info(
+            `${scoreResult.description}\nĐiểm: ${scoreResult.score} x ${scoreResult.multiplier} = ${scoreResult.totalScore}`,
+            { position: 'middle', duration: 3000 }
+        );
+        
+        // Cập nhật điểm số
+        this.scoreManager.updateRoundScore(scoreResult.totalScore);
+        
+        // Tiếp tục với logic hiện tại
         const newCards = this.boardManager.discardCards(selectedCards);
-
         await this.animatePlayCards(selectedCards);
-
         await wait(200);
         await this.animateDealCards(newCards);
     }
