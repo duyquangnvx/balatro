@@ -148,9 +148,6 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
             
             return cards.indexOf(cardA) - cards.indexOf(cardB);
         });
-        
-        // Arrange the card displays
-        this.arrangeCards();
     }
 
     public setMaxSelectedCards(maxSelectedCards: number): void {
