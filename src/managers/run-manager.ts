@@ -8,8 +8,16 @@ import { GAME_CONFIG, BlindType, BlindConfig, AnteConfig } from "../config/game-
 export interface BlindState {
     config: BlindConfig;
     requiredScore: number; // Required score
+    currentScore: number; // Current score
     completed: boolean; // Completed
     skipped: boolean; // Skipped
+
+    initialHandSize: number;
+    
+    remainingPlays: number;
+    remainingDiscards: number;
+    maxPlays: number;   
+    maxDiscards: number;
 }
 
 /**
@@ -257,6 +265,7 @@ export class RunManager {
         this.saveData();
     }
     
+    
     /**
      * Create default run state for a new run
      */
@@ -286,24 +295,9 @@ export class RunManager {
             // Create Ante State
             return {
                 config: anteConfig,
-                smallBlind: {
-                    config: smallBlindConfig,
-                    requiredScore: Math.floor(anteConfig.baseChips * smallBlindConfig.baseMultiplier),
-                    completed: false,
-                    skipped: false
-                },
-                bigBlind: {
-                    config: bigBlindConfig,
-                    requiredScore: Math.floor(anteConfig.baseChips * bigBlindConfig.baseMultiplier),
-                    completed: false,
-                    skipped: false
-                },
-                bossBlind: {
-                    config: bossBlindConfig,
-                    requiredScore: Math.floor(anteConfig.baseChips * bossBlindConfig.baseMultiplier),
-                    completed: false,
-                    skipped: false
-                },
+                smallBlind: this.createBlindState(anteConfig, smallBlindConfig),
+                bigBlind: this.createBlindState(anteConfig, bigBlindConfig),
+                bossBlind: this.createBlindState(anteConfig, bossBlindConfig),
                 completed: false
             };
         });
@@ -367,8 +361,11 @@ export class RunManager {
      * Get remaining hands for current blind/ante
      * This is a placeholder - update with actual logic
      */
-    public getRemainingHands(): number {
-        return 4; // Placeholder value
+    public getRemainingPlays(): number {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return 0;
+        
+        return currentBlind.remainingPlays;
     }
     
     /**
@@ -376,18 +373,97 @@ export class RunManager {
      * This is a placeholder - update with actual logic
      */
     public getRemainingDiscards(): number {
-        return 4; // Placeholder value
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return 0;
+        
+        return currentBlind.remainingDiscards;
     }
     
     /**
-     * Check if given score completes the current blind
-     * @param score The score to check
+     * Get maximum number of plays for current blind
+     * @returns Maximum number of plays
+     */
+    public getMaxPlays(): number {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return 0;
+        
+        return currentBlind.maxPlays;
+    }
+
+    /**
+     * Get maximum number of discards for current blind
+     * @returns Maximum number of discards
+     */
+    public getMaxDiscards(): number {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return 0;
+        
+        return currentBlind.maxDiscards;
+    }
+
+    public usePlay(): void {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return;
+        
+        currentBlind.remainingPlays--;
+    }
+
+    public useDiscard(): void {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return;
+        
+        currentBlind.remainingDiscards--;
+    }
+
+    /**
+     * Get the hand size for the current blind
+     * @returns Hand size
+     */
+    public getHandSize(): number {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return 0;
+        
+        return currentBlind.initialHandSize;
+    }
+
+    public addScore(score: number): void {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return;
+        
+        currentBlind.currentScore += score;
+    }
+
+    public getCurrentScore(): number {
+        const currentBlind = this.getCurrentBlind();
+        if (!currentBlind) return 0;
+        
+        return currentBlind.currentScore;
+    }
+
+    /**
+     * Check if the current blind is completed
      * @returns true if the score is enough to complete the blind
      */
-    public isCurrentBlindCompleted(score: number): boolean {
+    public isCurrentBlindCompleted(): boolean {
         const currentBlind = this.getCurrentBlind();
         if (!currentBlind) return false;
         
-        return score >= currentBlind.requiredScore;
+        return currentBlind.currentScore >= currentBlind.requiredScore;
+    }
+
+    private createBlindState(anteConfig: AnteConfig, blindConfig: BlindConfig): BlindState {
+        return {
+            config: blindConfig,
+            requiredScore: blindConfig.baseMultiplier * anteConfig.baseChips,
+            currentScore: 0,
+            completed: false,
+            skipped: false,
+            initialHandSize: blindConfig.initialHandSize,
+            remainingPlays: blindConfig.maxPlays,
+            remainingDiscards: blindConfig.maxDiscards,
+            maxPlays: blindConfig.maxPlays,
+            maxDiscards: blindConfig.maxDiscards
+        };
     }
 } 
+

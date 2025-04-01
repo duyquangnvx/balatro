@@ -1,6 +1,7 @@
 import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 import { Scene } from 'phaser';
 import { BlindType } from '../config/game-config';
+import { createBBCodeText, createLabel } from '../utils/game-utils';
 
 export interface BlindPanelConfig {
     x: number;
@@ -52,15 +53,12 @@ export class BlindPanel extends Phaser.GameObjects.Container {
     // Colors
     private readonly darkBlueColor = 0x09435A;
     private readonly lightBlueColor = 0x00619D;
-    private readonly darkGrayColor = 0x273935;
-    private readonly redColor = 0xFF4440;
+    private readonly darkGrayColor = 0x1D1F21;
+    private readonly redColor = '#FF4440';
     private readonly orangeColor = '#FF8C00';
     private readonly whiteTextColor = '#FFFFFF';
     private readonly goldColor = '#FFD700';
     private readonly lightBlueTextColor = '#0096FF';
-
-    // Font family
-    private readonly fontFamily = 'm6x11plus';
 
     constructor(scene: Scene, config: BlindPanelConfig) {
         super(scene, config.x, config.y);
@@ -71,6 +69,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
     }
     
     private createMainPanel(config: BlindPanelConfig): void {
+        // Tạo main panel container trước
         this.mainPanel = this.scene.rexUI.add.sizer({
             orientation: 'vertical',
             x: 0,
@@ -84,8 +83,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         );
         
         // Create title label
-        this.titleText = this.scene.rexUI.add.BBCodeText(0, 0, this.displayData.name, {
-            fontFamily: this.fontFamily,
+        this.titleText = createBBCodeText(this.scene, 0, 0, this.displayData.name, {
             fontSize: '24px',
             color: this.whiteTextColor,
             fixedWidth: config.width,
@@ -94,9 +92,8 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             valign: 'center'
         });
         
-        const titleLabel = this.scene.rexUI.add.label({
+        const titleLabel = createLabel(this.scene, this.titleText, {
             background: this.scene.add.rectangle(0, 0, 0, 0, this.lightBlueColor),
-            text: this.titleText,
             space: { left: 20, right: 20, top: 10, bottom: 10 },
             align: 'center',
             height: 50
@@ -136,7 +133,6 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         this.add(this.mainPanel);
     }
 
-
     private createBlindInfoPanel(width: number): UIPlugin.Sizer {
         // Tạo blind info container trước
         const blindInfoContainer = this.scene.rexUI.add.sizer({
@@ -148,12 +144,11 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkBlueColor)
             .setStrokeStyle(0));
         
-        // Sau đó tạo blind icon và thêm vào
+        // Tạo blind icon
         const blindIcon = this.scene.rexUI.add.roundRectangle(0, 0, 80, 80, 40, 0x2139A1) as any;
         blindIcon.setStrokeStyle(2, this.lightBlueColor);
         
-        const blindIconText = this.scene.rexUI.add.BBCodeText(0, 0, 'SMALL\nBLIND', {
-            fontFamily: this.fontFamily,
+        const blindIconText = createBBCodeText(this.scene, 0, 0, 'SMALL\nBLIND', {
             fontSize: '14px',
             color: this.whiteTextColor,
             align: 'center',
@@ -163,9 +158,8 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             valign: 'center'
         });
         
-        const blindIconLabel = this.scene.rexUI.add.label({
+        const blindIconLabel = createLabel(this.scene, blindIconText, {
             background: blindIcon,
-            text: blindIconText,
             space: { left: 5, right: 5, top: 5, bottom: 5 },
             align: 'center'
         });
@@ -179,8 +173,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             .setStrokeStyle(1, 0x333333));
         
         // Thêm các đối tượng vào target score panel
-        const scoreLabel = this.scene.rexUI.add.BBCodeText(0, 0, 'Score at least', {
-            fontFamily: this.fontFamily,
+        const scoreLabel = createBBCodeText(this.scene, 0, 0, 'Score at least', {
             fontSize: '16px',
             color: this.whiteTextColor
         });
@@ -195,8 +188,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         const chipIcon = this.scene.add.sprite(0, 0, 'chips', 'white.png');
         chipIcon.setScale(0.5);
         
-        this.targetScoreText = this.scene.rexUI.add.BBCodeText(0, 0, this.displayData.targetScore.toString(), {
-            fontFamily: this.fontFamily,
+        this.targetScoreText = createBBCodeText(this.scene, 0, 0, this.displayData.targetScore.toString(), {
             fontSize: '30px',
             color: '#FF4440'
         });
@@ -205,10 +197,9 @@ export class BlindPanel extends Phaser.GameObjects.Container {
                .add(this.targetScoreText, 0, 'center', 0, false);
         
         // Layout score row
-        (scoreRow as any).layout();
+        scoreRow.layout();
         
-        const rewardText = this.scene.rexUI.add.BBCodeText(0, 0, 'Reward: $$$', {
-            fontFamily: this.fontFamily,
+        const rewardText = createBBCodeText(this.scene, 0, 0, 'Reward: $$$', {
             fontSize: '16px',
             color: this.goldColor
         });
@@ -220,7 +211,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             .add(rewardText, 0, 'center', 0, false);
         
         // Layout target score panel
-        (targetScorePanel as any).layout();
+        targetScorePanel.layout();
         
         // Thêm vào container chính
         blindInfoContainer
@@ -245,40 +236,32 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             .setStrokeStyle(1, 0xFFFFFF));
         
         // Sau đó tạo và thêm các đối tượng con
-        const scoreLabel = this.scene.rexUI.add.BBCodeText(0, 0, 'Round\nscore', {
-            fontFamily: this.fontFamily,
+        const scoreLabel = createBBCodeText(this.scene, 0, 0, 'Round\nscore', {
             fontSize: '18px',
             color: this.whiteTextColor,
+            align: 'center',
+            halign: 'center'
+        });
+        
+        this.currentScoreText = createBBCodeText(this.scene, 0, 0, this.displayData.currentScore.toString(), {
+            fontSize: '32px',
+            color: this.lightBlueTextColor,
+            align: 'center',
+            halign: 'center'
+        });
+        
+        // Tạo các label và thêm vào panel
+        const scoreLabelWrap = createLabel(this.scene, scoreLabel, {
             align: 'center'
         });
         
-        // Tạo sizer con trước
-        const scoreContentSizer = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
-            space: { item: 10 }
+        const scoreTextWrap = createLabel(this.scene, this.currentScoreText, {
+            align: 'center'
         });
         
-        // Sau đó tạo và thêm chip icon và score text
-        const chipIcon = this.scene.add.sprite(0, 0, 'chips', 'white.png');
-        chipIcon.setScale(0.4);
-        
-        this.currentScoreText = this.scene.rexUI.add.BBCodeText(0, 0, this.displayData.currentScore.toString(), {
-            fontFamily: this.fontFamily,
-            fontSize: '32px',
-            color: this.whiteTextColor
-        });
-        
-        scoreContentSizer
-            .add(chipIcon, 0, 'center', 0, false)
-            .add(this.currentScoreText, 0, 'center', 0, false);
-        
-        // Layout score content sizer
-        (scoreContentSizer as any).layout();
-        
-        // Thêm vào panel chính
         scorePanel
-            .add(scoreLabel, 0, 'center', 0, false)
-            .add(scoreContentSizer, 1, 'center', 0, false);
+            .add(scoreLabelWrap, 1, 'center', 0, false)
+            .add(scoreTextWrap, 3, 'center', 0, false);
         
         // Layout score panel
         scorePanel.layout();
@@ -292,28 +275,26 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             orientation: 'horizontal',
             width: width,
             height: 60,
-            space: { item: 20, left: 20, right: 20 }
+            space: { item: 5, left: 10, right: 10 }
         })
         .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkGrayColor)
             .setStrokeStyle(1, 0xFFFFFF));
         
-        // Sau đó tạo và thêm các đối tượng con
-        const leftMultRect = this.scene.add.rectangle(0, 0, 80, 40, this.lightBlueColor);
+        // Tạo các thành phần nội dung
+        const multiplierBox = this.scene.add.rectangle(0, 0, 40, 40, 0x333333)
+            .setStrokeStyle(1, 0x666666);
         
-        this.multiplierText = this.scene.rexUI.add.BBCodeText(0, 0, 
-            `${this.displayData.multiplierLeft} x ${this.displayData.multiplierRight}`, {
-            fontFamily: this.fontFamily,
-            fontSize: '32px',
-            color: this.whiteTextColor
+        this.multiplierText = createBBCodeText(this.scene, 0, 0, `${this.displayData.multiplierLeft}x  ${this.displayData.multiplierRight}x`, {
+            fontSize: '24px',
+            color: this.orangeColor
         });
         
-        const rightMultRect = this.scene.add.rectangle(0, 0, 80, 40, this.redColor);
+        const multiplierLabel = createLabel(this.scene, this.multiplierText, {
+            background: multiplierBox,
+            align: 'center'
+        });
         
-        // Thêm vào panel
-        multiplierPanel
-            .add(leftMultRect, 0, 'center', 0, false)
-            .add(this.multiplierText, 0, 'center', 0, false)
-            .add(rightMultRect, 0, 'center', 0, false);
+        multiplierPanel.add(multiplierLabel, 1, 'center', 0, false);
         
         // Layout multiplier panel
         multiplierPanel.layout();
@@ -326,78 +307,70 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         const bottomPanel = this.scene.rexUI.add.sizer({
             orientation: 'horizontal',
             width: width,
-            height: 200,
-            space: { item: 20 }
-        });
+            height: 160,
+            space: { item: 10, left: 10, right: 10 }
+        })
+        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkGrayColor)
+            .setStrokeStyle(1, 0xFFFFFF));
         
-        // Tạo buttons sizer
+        // Tạo sizer cho các nút
         const buttonsSizer = this.scene.rexUI.add.sizer({
             orientation: 'vertical',
-            space: { item: 10 }
+            space: { item: 10, top: 10, bottom: 10 }
         });
         
-        // Tạo và thêm các button
-        const runInfoButton = this.createButton(
-            'Run\nInfo',
-            this.redColor,
-            () => console.log('Run Info clicked')
-        );
+        // Thêm các nút
+        const button1 = this.createButton('ANTE UP', 0xB8321E);
+        const button2 = this.createButton('CASH OUT', 0x00619D);
         
-        const optionsButton = this.createButton(
-            'Options',
-            this.lightBlueColor,
-            () => console.log('Options clicked')
-        );
-        
-        buttonsSizer
-            .add(runInfoButton, 0, 'center', 0, false)
-            .add(optionsButton, 0, 'center', 0, false);
+        buttonsSizer.add(button1, 0, 'center', 0, false)
+                    .add(button2, 0, 'center', 0, false);
         
         // Layout buttons sizer
-        (buttonsSizer as any).layout();
+        buttonsSizer.layout();
         
-        // Tạo stats grid
-        const statsGridSizer = this.scene.rexUI.add.gridSizer({
-            column: 2,
-            row: 3,
-            width: width - 120,
-            height: 200,
-            space: { column: 10, row: 10 }
-        });
+        // Tạo stats panel
+        const statsPanel = this.scene.rexUI.add.sizer({
+            orientation: 'vertical',
+            space: { item: 5, left: 10, right: 10, top: 10, bottom: 10 }
+        })
+        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, 0x222222));
         
-        // Tạo stats items
-        const [handsLabel, handsValue] = this.createStatsItem('Hands', this.displayData.hands, this.lightBlueTextColor);
-        const [discardsLabel, discardsValue] = this.createStatsItem('Discards', this.displayData.discards, this.lightBlueTextColor);
-        const [moneyLabel, moneyValue] = this.createStatsItem('Money', this.displayData.money, this.goldColor, true);
-        const [anteLabel, anteValue] = this.createStatsItem(
-            'Ante', 
-            `${this.displayData.ante}/${this.displayData.totalAntes}`, 
-            this.orangeColor
-        );
-        const [roundLabel, roundValue] = this.createStatsItem('Round', this.displayData.round, this.whiteTextColor);
+        // Thêm các thông tin sử dụng .toString() để chuyển đổi số thành chuỗi
+        const hands = this.displayData.hands.toString();
+        const [handsItem, handsValueText] = this.createStatsItem('Hands', hands, this.whiteTextColor, false);
+        this.handsText = handsValueText;
         
-        // Store references to text elements
-        this.handsText = handsValue;
-        this.discardsText = discardsValue;
-        this.moneyText = moneyValue;
-        this.anteText = anteValue;
-        this.roundText = roundValue;
+        const discards = this.displayData.discards.toString();
+        const [discardsItem, discardsValueText] = this.createStatsItem('Discards', discards, this.whiteTextColor, false);
+        this.discardsText = discardsValueText;
         
-        // Thêm vào grid
-        statsGridSizer
-            .add(handsLabel, 0, 0, 'center', 0, true)
-            .add(discardsLabel, 1, 0, 'center', 0, true)
-            .add(moneyLabel, 0, 1, 'center', 0, true)
-            .add(anteLabel, 1, 1, 'center', 0, true)
-            .add(roundLabel, 0, 2, 'center', 0, true);
+        const money = this.displayData.money.toString();
+        const [moneyItem, moneyValueText] = this.createStatsItem('Money', money, this.goldColor, true);
+        this.moneyText = moneyValueText;
         
-        // Layout stats grid sizer
-        (statsGridSizer as any).layout();
+        const ante = this.displayData.ante.toString();
+        const [anteItem, anteValueText] = this.createStatsItem('Ante', ante, this.redColor, true);
+        this.anteText = anteValueText;
+        
+        const round = `${this.displayData.round}/${this.displayData.totalAntes}`;
+        const [roundItem, roundValueText] = this.createStatsItem('Round', round, this.whiteTextColor, false);
+        this.roundText = roundValueText;
+        
+        statsPanel
+            .add(handsItem, 0, 'center', { bottom: 3 }, false)
+            .add(discardsItem, 0, 'center', { bottom: 3 }, false)
+            .add(moneyItem, 0, 'center', { bottom: 3 }, false)
+            .add(anteItem, 0, 'center', { bottom: 3 }, false)
+            .add(roundItem, 0, 'center', 0, false);
+        
+        // Layout stats panel
+        statsPanel.layout();
         
         // Thêm vào bottom panel
         bottomPanel
-            .add(buttonsSizer, 0, 'top', 0, false)
-            .add(statsGridSizer, 1, 'center', 0, true);
+            .add(buttonsSizer, 1, 'left', { left: 5 }, false)
+            .add(statsPanel, 1, 'center', 0, false);
         
         // Layout bottom panel
         bottomPanel.layout();
@@ -410,170 +383,172 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         color: number,
         callback?: () => void
     ): UIPlugin.Label {
-        // Sử dụng RexUI buttons với font pixelated
-        const background = this.scene.rexUI.add.roundRectangle(0, 0, 100, 80, 10, color);
+        const buttonBg = this.scene.rexUI.add.roundRectangle(0, 0, 160, 40, 10, color);
         
-        const button = this.scene.rexUI.add.label({
-            background: background,
-            text: this.scene.rexUI.add.BBCodeText(0, 0, text, {
-                fontFamily: this.fontFamily,
-                fontSize: '20px',
-                color: this.whiteTextColor,
-                align: 'center',
-                fixedWidth: 90,
-                fixedHeight: 70,
-                halign: 'center',
-                valign: 'center'
-            }),
-            space: { left: 10, right: 10, top: 10, bottom: 10 },
+        const buttonText = createBBCodeText(this.scene, 0, 0, text, {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            halign: 'center'
         });
         
-        button.setInteractive()
-            .on('pointerover', () => {
-                background.fillColor = Phaser.Display.Color.ValueToColor(color).brighten(20).color;
-            })
-            .on('pointerout', () => {
-                background.fillColor = color;
-            })
-            .on('pointerdown', () => {
-                background.fillColor = Phaser.Display.Color.ValueToColor(color).darken(20).color;
-                if (callback) callback();
-            })
-            .on('pointerup', () => {
-                background.fillColor = color;
-            });
+        const button = createLabel(this.scene, buttonText, {
+            background: buttonBg,
+            space: { left: 10, right: 10, top: 5, bottom: 5 },
+            align: 'center'
+        });
+        
+        // Thêm tính chất tương tác
+        button.setInteractive({ useHandCursor: true })
+              .on('pointerover', () => {
+                  buttonBg.setStrokeStyle(2, 0xffffff);
+              })
+              .on('pointerout', () => {
+                  buttonBg.setStrokeStyle(0);
+              })
+              .on('pointerdown', () => {
+                  if (callback) callback();
+              });
         
         return button;
     }
 
     private createStatsItem(
         label: string, 
-        value: string | number, 
-        color: string,
+        value: string, 
+        color: string | number,
         isMoney: boolean = false
-    ): [UIPlugin.Container, UIPlugin.BBCodeText] {
-        // Tạo stats container trước
+    ): [UIPlugin.Sizer, UIPlugin.BBCodeText] {
+        // Tạo sizer trước
         const statsItem = this.scene.rexUI.add.sizer({
-            orientation: 'vertical',
-            space: { item: 5 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, 0x222222)
-            .setStrokeStyle(1, 0x333333));
-        
-        // Sau đó tạo và thêm các đối tượng con
-        const labelText = this.scene.rexUI.add.BBCodeText(0, 0, label, {
-            fontFamily: this.fontFamily,
-            fontSize: '14px',
-            color: this.whiteTextColor
+            orientation: 'horizontal',
+            space: { item: 10 }
         });
         
-        const valueText = this.scene.rexUI.add.BBCodeText(0, 0, 
-            isMoney ? '$' + value : value.toString(), {
-            fontFamily: this.fontFamily,
-            fontSize: '24px',
-            color: color
+        // Tạo các thành phần text
+        const labelText = createBBCodeText(this.scene, 0, 0, label, {
+            fontSize: '16px',
+            color: this.whiteTextColor,
+            halign: 'left'
         });
         
+        // Chuyển đổi value thành chuỗi
+        let valueString = value;
+        if (isMoney) valueString = '$' + valueString;
+        
+        const valueText = createBBCodeText(this.scene, 0, 0, valueString, {
+            fontSize: '16px',
+            color: color,
+            halign: 'right'
+        });
+        
+        // Thêm vào sizer
         statsItem
-            .add(labelText, 0, 'center', 0, false)
-            .add(valueText, 0, 'center', 0, false);
+            .add(labelText, 3, 'left', 0, false)
+            .add(valueText, 2, 'right', 0, false);
         
         // Layout stats item
-        (statsItem as any).layout();
+        statsItem.layout();
         
         return [statsItem, valueText];
     }
 
     /**
-     * Update the panel with new display data
+     * Update panel data
      */
     public updatePanel(data: Partial<BlindDisplayData>): void {
-        // Update the display data
+        // Cập nhật dữ liệu
         this.displayData = { ...this.displayData, ...data };
         
-        // Update text elements
-        this.titleText.setText(this.displayData.name);
+        // Cập nhật các hiển thị
+        if (data.name) this.titleText.setText(data.name);
+        if (data.targetScore) this.targetScoreText.setText(data.targetScore.toString());
+        if (data.currentScore !== undefined) this.currentScoreText.setText(data.currentScore.toString());
+        if (data.multiplierLeft !== undefined || data.multiplierRight !== undefined) {
+            this.multiplierText.setText(`${this.displayData.multiplierLeft}x  ${this.displayData.multiplierRight}x`);
+        }
+        if (data.hands) this.handsText.setText(data.hands.toString());
+        if (data.discards) this.discardsText.setText(data.discards.toString());
+        if (data.money) this.moneyText.setText('$' + data.money.toString());
+        if (data.ante) this.anteText.setText('$' + data.ante.toString());
+        if (data.round !== undefined || data.totalAntes !== undefined) {
+            this.roundText.setText(`${this.displayData.round}/${this.displayData.totalAntes}`);
+        }
         
-        this.targetScoreText.setText(this.displayData.targetScore.toString());
-        this.currentScoreText.setText(this.displayData.currentScore.toString());
-        this.multiplierText.setText(`${this.displayData.multiplierLeft} x ${this.displayData.multiplierRight}`);
-        this.handsText.setText(this.displayData.hands.toString());
-        this.discardsText.setText(this.displayData.discards.toString());
-        this.moneyText.setText('$' + this.displayData.money);
-        this.anteText.setText(`${this.displayData.ante}/${this.displayData.totalAntes}`);
-        this.roundText.setText(this.displayData.round.toString());
-        
-        // Re-layout the panel
+        // Layout để cập nhật hiển thị
         this.layoutAll();
+
+        console.log('updatePanel', data);
     }
-    
+
     /**
      * Layout all UI components
      */
     public layoutAll(): void {
-        // Tìm tất cả các sizer con trong mainPanel và gọi layout
+        // Layout main panel
         if (this.mainPanel) {
-            // Layout main panel
             this.mainPanel.layout();
         }
     }
-    
+
     /**
-     * Update the current score
+     * Update score display
      */
     public updateScore(score: number): void {
-        this.displayData.currentScore = score;
-        this.currentScoreText.setText(score.toString());
+        this.updatePanel({
+            currentScore: score
+        });
     }
-    
+
     /**
-     * Update the current blind
+     * Update blind type and target score
      */
     public updateBlind(blindType: BlindType, name: string, targetScore: number): void {
-        this.displayData.name = name;
-        this.displayData.targetScore = targetScore;
+        this.updatePanel({
+            name,
+            targetScore
+        });
         
-        // Cập nhật title text trực tiếp
-        this.titleText.setText(name);
-        
-        this.targetScoreText.setText(targetScore.toString());
+        // Thêm xử lý UI cập nhật theo loại blind nếu cần
+        // ...
     }
-    
+
     /**
-     * Update the multiplier display
+     * Update multiplier display
      */
     public updateMultiplier(left: number, right: number): void {
-        this.displayData.multiplierLeft = left;
-        this.displayData.multiplierRight = right;
-        this.multiplierText.setText(`${left} x ${right}`);
+        this.updatePanel({
+            multiplierLeft: left,
+            multiplierRight: right
+        });
     }
-    
+
     /**
-     * Update hands and discards
+     * Update hands and discards display
      */
     public updateHandsAndDiscards(hands: number, discards: number): void {
-        this.displayData.hands = hands;
-        this.displayData.discards = discards;
-        this.handsText.setText(hands.toString());
-        this.discardsText.setText(discards.toString());
+        this.updatePanel({
+            hands: hands,
+            discards: discards
+        });
     }
-    
+
     /**
-     * Update money
+     * Update money display
      */
     public updateMoney(money: number): void {
-        this.displayData.money = money;
-        this.moneyText.setText('$' + money);
+        this.updatePanel({
+            money: money
+        });
     }
-    
+
     /**
-     * Update ante and round
+     * Update ante and round display
      */
     public updateAnteAndRound(ante: number, totalAntes: number, round: number): void {
-        this.displayData.ante = ante;
-        this.displayData.totalAntes = totalAntes;
-        this.displayData.round = round;
-        this.anteText.setText(`${ante}/${totalAntes}`);
-        this.roundText.setText(round.toString());
+        this.updatePanel({
+            ante: ante,
+            totalAntes: totalAntes,
+            round: round
+        });
     }
 } 

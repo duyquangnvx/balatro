@@ -76,15 +76,7 @@ export class TestScene extends Scene {
                 .setPadding(5)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', () => {
-                    // Cho mục đích demo, thay đổi align của toàn bộ panel
-                    // Sử dụng các phương thức align có sẵn
-                    if (align === 'left') {
-                        container.alignLeft(0);
-                    } else if (align === 'right') {
-                        container.alignRight(0);
-                    } else { // center
-                        container.alignCenterX(0);
-                    }
+                    container.setChildrenAlignMode(align as any);
                     container.layout();
                 });
             alignPanel.add(button, 0);
@@ -139,6 +131,7 @@ export class TestScene extends Scene {
                 .setPadding(5)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', () => {
+                    container.setChildrenAlignMode(align as any);
                     container.layout();
                 });
             controlPanel.add(button, 0);

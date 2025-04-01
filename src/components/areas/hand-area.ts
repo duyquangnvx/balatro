@@ -6,6 +6,8 @@ import { Toast } from "../../ui/toast";
 import { BoardManager } from "../../managers/board-manager";
 import { PlayingCard } from "../../objects/playing-card";
 import { LocalStorage } from "../../utils/local-storage";
+import { PlayArea } from "./play-area";
+import { DiscardArea } from "./discard-area";
 
 export enum SortType {
     NONE,

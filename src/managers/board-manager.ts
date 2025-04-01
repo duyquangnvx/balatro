@@ -21,6 +21,7 @@ export class BoardManager {
 
     private maxSelectedCards: number;
 
+
     constructor() {
         this.cardMap = new Map();
         
@@ -84,8 +85,8 @@ export class BoardManager {
         }
     }
 
-    public newGame(): void {
-        // Reset for new game
+    public startNewRound(): void {
+        // Reset for new round
         this.handCards = [];
         this.discardedCards = [];
         this.playedCards = [];
@@ -95,9 +96,6 @@ export class BoardManager {
             card.setFlipped(false);
         });
         this.shuffleDeck();
-
-        const initCards = this.drawInitCards();
-        this.addCardsToHand(initCards);
     }
 
     public playCards(cards: PlayingCard[]): void {
@@ -113,11 +111,9 @@ export class BoardManager {
 
         // Remove the cards from the hand
         this.handCards = this.handCards.filter(card => !cards.includes(card));
-
-        // todo: calculate score
     }
 
-    public discardCards(cards: PlayingCard[]): PlayingCard[] {
+    public discardCards(cards: PlayingCard[]): void {
         // Validate cards are in hand
         cards.forEach(card => {
             if (!this.handCards.includes(card)) {
@@ -130,19 +126,17 @@ export class BoardManager {
 
         // Remove the cards from the hand
         this.handCards = this.handCards.filter(card => !cards.includes(card));
-    
-        const drawnCards = this.drawCards(cards.length);
-        this.addCardsToHand(drawnCards);
-
-        return drawnCards;
     }
 
     private shuffleDeck(): void {
         Phaser.Utils.Array.Shuffle(this.deckCards);
     }
 
-    private drawInitCards(): PlayingCard[] {
-        return this.drawCards(GAME_CONFIG.INITIAL_HAND_SIZE);
+    public dealCardsToHand(count: number): PlayingCard[] {
+        const drawnCards = this.drawCards(count);
+        this.addCardsToHand(drawnCards);
+
+        return drawnCards;
     }
 
     private drawCards(count: number): PlayingCard[] {

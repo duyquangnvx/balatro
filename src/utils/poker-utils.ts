@@ -245,6 +245,97 @@ export function getHighestCard(cards: PlayingCard[]): PlayingCard {
 }
 
 /**
+ * Get the cards that form the best poker hand
+ * @param cards The cards to evaluate
+ * @returns The cards that form the best poker hand
+ */
+export function getPokerHandCards(cards: PlayingCard[]): PlayingCard[] {
+    if (cards.length <= 1) {
+        return [...cards];
+    }
+    
+    // Clone array to avoid affecting the original cards
+    const handCards = [...cards];
+    
+    // Special hands (all cards involved)
+    if (isFlushFive(handCards) || 
+        isFiveOfAKind(handCards) || 
+        isFlushHouse(handCards) || 
+        isRoyalFlush(handCards) || 
+        isStraightFlush(handCards) || 
+        isFlush(handCards) || 
+        isStraight(handCards)) {
+        return handCards.slice(0, 5);
+    }
+    
+    // Four of a Kind (4 cards with same rank)
+    if (isFourOfAKind(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const fourOfAKindRank = Object.entries(rankCounts)
+            .find(([_, count]) => count >= 4)?.[0] as Rank;
+            
+        if (fourOfAKindRank) {
+            return handCards.filter(card => card.getRank() === fourOfAKindRank).slice(0, 4);
+        }
+    }
+    
+    // Full House (3 cards with same rank + 2 with same rank)
+    if (isFullHouse(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const threeOfAKindRank = Object.entries(rankCounts)
+            .find(([_, count]) => count >= 3)?.[0] as Rank;
+        const pairRank = Object.entries(rankCounts)
+            .find(([rank, count]) => count >= 2 && rank !== threeOfAKindRank)?.[0] as Rank;
+            
+        if (threeOfAKindRank && pairRank) {
+            const threeCards = handCards.filter(card => card.getRank() === threeOfAKindRank).slice(0, 3);
+            const pairCards = handCards.filter(card => card.getRank() === pairRank).slice(0, 2);
+            return [...threeCards, ...pairCards];
+        }
+    }
+    
+    // Three of a Kind (3 cards with same rank)
+    if (isThreeOfAKind(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const threeOfAKindRank = Object.entries(rankCounts)
+            .find(([_, count]) => count >= 3)?.[0] as Rank;
+            
+        if (threeOfAKindRank) {
+            return handCards.filter(card => card.getRank() === threeOfAKindRank).slice(0, 3);
+        }
+    }
+    
+    // Two Pair (2 sets of pairs)
+    if (isTwoPair(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const pairRanks = Object.entries(rankCounts)
+            .filter(([_, count]) => count >= 2)
+            .map(([rank, _]) => rank as Rank)
+            .slice(0, 2);
+            
+        if (pairRanks.length >= 2) {
+            const firstPairCards = handCards.filter(card => card.getRank() === pairRanks[0]).slice(0, 2);
+            const secondPairCards = handCards.filter(card => card.getRank() === pairRanks[1]).slice(0, 2);
+            return [...firstPairCards, ...secondPairCards];
+        }
+    }
+    
+    // Pair (2 cards with same rank)
+    if (isPair(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const pairRank = Object.entries(rankCounts)
+            .find(([_, count]) => count >= 2)?.[0] as Rank;
+            
+        if (pairRank) {
+            return handCards.filter(card => card.getRank() === pairRank).slice(0, 2);
+        }
+    }
+    
+    // High Card (just the highest card)
+    return [getHighestCard(handCards)];
+}
+
+/**
  * Evaluate a poker hand and return the highest possible combination
  * @param cards The cards to evaluate
  * @returns The evaluation result containing hand type and description

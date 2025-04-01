@@ -20,6 +20,9 @@ export interface BlindConfig {
     description: string;
     effect?: string; // Description of special effect of Blind (if any)
     canSkip: boolean; // Can skip or not
+    initialHandSize: number; // Initial number of cards in hand
+    maxPlays: number; // Maximum number of plays allowed
+    maxDiscards: number; // Maximum number of discards allowed
 }
 
 /**
@@ -88,7 +91,10 @@ export const GAME_CONFIG = {
             type: BlindType.SMALL_BLIND,
             baseMultiplier: 1.0, // 1x base chips
             description: "Blind cơ bản đầu tiên của mỗi Ante",
-            canSkip: true
+            canSkip: true,
+            initialHandSize: 8,
+            maxPlays: 4,
+            maxDiscards: 4
         } as BlindConfig,
         
         BIG_BLIND: {
@@ -96,7 +102,10 @@ export const GAME_CONFIG = {
             type: BlindType.BIG_BLIND,
             baseMultiplier: 1.5, // 1.5x base chips
             description: "Blind cơ bản thứ hai của mỗi Ante",
-            canSkip: true
+            canSkip: true,
+            initialHandSize: 8,
+            maxPlays: 4,
+            maxDiscards: 4
         } as BlindConfig,
         
         // Basic Boss Blinds
@@ -107,7 +116,10 @@ export const GAME_CONFIG = {
                 baseMultiplier: 2.0, // 2x base chips
                 description: "Blind cuối cùng của Ante",
                 effect: "Bài J, Q, K và A bị vô hiệu hóa",
-                canSkip: false
+                canSkip: false,
+                initialHandSize: 8,
+                maxPlays: 4,
+                maxDiscards: 4
             },
             {
                 name: "The Fare",
@@ -115,7 +127,10 @@ export const GAME_CONFIG = {
                 baseMultiplier: 2.0,
                 description: "Blind cuối cùng của Ante",
                 effect: "Các lá bài chất Spades (♠) bị vô hiệu hóa",
-                canSkip: false
+                canSkip: false,
+                initialHandSize: 8,
+                maxPlays: 4,
+                maxDiscards: 4
             },
             {
                 name: "The Arm",
@@ -123,7 +138,10 @@ export const GAME_CONFIG = {
                 baseMultiplier: 2.0,
                 description: "Blind cuối cùng của Ante",
                 effect: "Chỉ được chơi tối đa 4 lá bài mỗi lượt",
-                canSkip: false
+                canSkip: false,
+                initialHandSize: 8,
+                maxPlays: 4,
+                maxDiscards: 4
             }
         ] as BlindConfig[],
         
@@ -135,7 +153,10 @@ export const GAME_CONFIG = {
                 baseMultiplier: 2.5, // 2.5x base chips
                 description: "Blind cuối cùng của run",
                 effect: "Chỉ có thể chơi Four of a Kind hoặc Full House",
-                canSkip: false
+                canSkip: false,
+                initialHandSize: 8,
+                maxPlays: 4,
+                maxDiscards: 4
             },
             {
                 name: "Verdant Leaf",
@@ -143,7 +164,10 @@ export const GAME_CONFIG = {
                 baseMultiplier: 2.5,
                 description: "Blind cuối cùng của run",
                 effect: "Lá bài đánh ra có 50% xuất hiện úp mặt",
-                canSkip: false
+                canSkip: false,
+                initialHandSize: 8,
+                maxPlays: 4,
+                maxDiscards: 4
             }
         ] as BlindConfig[]
     },

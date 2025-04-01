@@ -55,7 +55,6 @@ export class ScoreManager {
         this.loadData();
         this.roundScore = 0;
         this.scoreMultiplier = 1;
-        this.runManager.startNewRun();
         this.saveData();
     }
 
@@ -127,14 +126,11 @@ export class ScoreManager {
     }
 
     /**
-     * Start a new game
+     * Start a new round
      */
-    public startNewGame(): void {
+    public startNewRound(): void {
         this.roundScore = 0;
         this.scoreMultiplier = 1;
-        
-        // Start a new run in RunManager
-        this.runManager.startNewRun();
         
         this.saveData();
     }

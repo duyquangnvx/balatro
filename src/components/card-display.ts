@@ -167,32 +167,38 @@ export abstract class CardDisplay<T extends Card = Card> extends Phaser.GameObje
     /**
      * Animate card lifting up when selected
      */
-    public liftUp(): void {
+    public async liftUp(): Promise<void> {
         // Stop any existing lift animation
         this.stopLift();
 
-        // Create a new lift animation
-        this.liftAnimation = this.scene.tweens.add({
-            targets: this.shakeParent,
-            y: -CardDisplay.LIFT_OFFSET,
-            duration: 200,
-            ease: 'Back.easeOut'
+        return new Promise<void>(resolve => {  
+            // Create a new lift animation
+            this.liftAnimation = this.scene.tweens.add({
+                targets: this.shakeParent,
+                y: -CardDisplay.LIFT_OFFSET,
+                duration: 200,
+                ease: 'Back.easeOut',
+                onComplete: () => resolve()
+            });
         });
     }
     
     /**
      * Animate card lowering down when unselected
      */
-    public lowerDown(): void {
+    public async lowerDown(): Promise<void> {
         // Stop any existing lift animation
         this.stopLift();
         
-        // Create a new lower animation
-        this.liftAnimation = this.scene.tweens.add({
-            targets: this.shakeParent,
-            y: 0,
-            duration: 200,
-            ease: 'Back.easeIn'
+        return new Promise<void>(resolve => {  
+            // Create a new lower animation
+            this.liftAnimation = this.scene.tweens.add({
+                targets: this.shakeParent,
+                y: 0,
+                duration: 200,
+                ease: 'Back.easeIn',
+                onComplete: () => resolve()
+            });
         });
     }
     
