@@ -1,5 +1,3 @@
-import { BaseContainer } from '../ui/containers/base-container';
-
 /**
  * Interface for updatable objects
  */
@@ -15,7 +13,6 @@ export class GameLoop {
     
     private game: Phaser.Game;
     private updatables: Map<string, IUpdatable>;
-    private containers: Map<string, BaseContainer>;
     private lastTime: number;
     private paused: boolean;
     private fps: number;
@@ -24,7 +21,6 @@ export class GameLoop {
     private constructor(game: Phaser.Game) {
         this.game = game;
         this.updatables = new Map();
-        this.containers = new Map();
         this.lastTime = 0;
         this.paused = false;
         this.fps = 60;
@@ -74,23 +70,7 @@ export class GameLoop {
         this.updatables.delete(id);
         return this;
     }
-    
-    /**
-     * Add UI container to update list
-     */
-    public addContainer(id: string, container: BaseContainer): this {
-        this.containers.set(id, container);
-        return this;
-    }
-    
-    /**
-     * Remove container from update list
-     */
-    public removeContainer(id: string): this {
-        this.containers.delete(id);
-        return this;
-    }
-    
+
     /**
      * Call before update
      */
@@ -118,11 +98,6 @@ export class GameLoop {
         
         // Adjust delta by timeScale
         delta *= this.timeScale;
-        
-        // Update UI containers
-        this.containers.forEach(container => {
-            container.update(time, delta);
-        });
         
         // Update other objects
         this.updatables.forEach(updatable => {
@@ -189,7 +164,6 @@ export class GameLoop {
         
         // Clear references
         this.updatables.clear();
-        this.containers.clear();
         
         // Reset instance
         GameLoop.instance = undefined;

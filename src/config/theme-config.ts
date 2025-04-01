@@ -32,7 +32,8 @@ export const THEME_CONFIG = {
         PIXEL: 'm6x11plus',
         NORMAL: 'Arial',
         SIZES: {
-            SMALL: 16,
+            TINY: 14,
+            SMALL: 18,
             MEDIUM: 24,
             LARGE: 32,
             XLARGE: 48

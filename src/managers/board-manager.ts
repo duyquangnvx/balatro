@@ -1,7 +1,7 @@
 import { SortType } from "../components/areas/hand-area";
 import { GAME_CONFIG } from "../config/game-config";
 import { PlayingCard, Rank, Suit } from "../objects/playing-card";
-import { sortByRankInternal, sortBySuitInternal } from "../utils/card-helpers";
+import { sortByRankInternal, sortBySuitInternal } from "../utils/card-utils";
 
 export class BoardManager {
     // Map of all cards, indexed by id

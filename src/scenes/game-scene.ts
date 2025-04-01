@@ -34,7 +34,7 @@ const SCENE_CONFIG = {
     },
     HAND: {
         x: GAME_CONFIG.SCREEN_WIDTH / 2,
-        y: GAME_CONFIG.SCREEN_HEIGHT - 200,
+        y: GAME_CONFIG.SCREEN_HEIGHT - 220,
         width: 600,
         height: 200,
         depth: 200,
@@ -49,7 +49,7 @@ const SCENE_CONFIG = {
     },
     PLAY: {
         x: GAME_CONFIG.SCREEN_WIDTH / 2,
-        y: GAME_CONFIG.SCREEN_HEIGHT / 2 - 50,
+        y: GAME_CONFIG.SCREEN_HEIGHT / 2 - 100,
         width: 700,
         height: 200,
         depth: 150
@@ -218,6 +218,8 @@ export class GameScene extends BaseScene {
         
         const newCards = this.gameManager.playCards(selectedCards);
 
+        this.handDisplay.clearSelection();
+
         // Deal new cards to replace the ones played
         await this.animatePlayCards(selectedCards);
         await wait(200);
@@ -239,6 +241,8 @@ export class GameScene extends BaseScene {
 
         // Deal new cards to replace the ones played
         const newCards = this.gameManager.discardCards(selectedCards);
+
+        this.handDisplay.clearSelection();
 
         await this.animateDiscardCards(selectedCards);
         await wait(200);

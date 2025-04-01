@@ -8,6 +8,7 @@ import { TransitionFade } from './scenes/transitions/transition-scene';
 import { GAME_CONFIG } from './config/game-config';
 import { GameLoop } from './utils/game-loop';
 import RexUIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
+import DropShadowPipelinePlugin from 'phaser3-rex-plugins/plugins/dropshadowpipeline-plugin.js';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -37,6 +38,11 @@ const config: Phaser.Types.Core.GameConfig = {
             key: 'rexUI',
             plugin: RexUIPlugin,
             mapping: 'rexUI'
+        }],
+        global: [{
+            key: 'rexDropShadowPipeline',
+            plugin: DropShadowPipelinePlugin,
+            start: true
         }]
     }
 };

@@ -1,6 +1,9 @@
 import { Scene } from 'phaser';
 import { HandArea, SortType } from '../components/areas/hand-area';
-
+import { Button } from './button';
+import { createThemedText } from '../utils/game-utils';
+import { applyShadow } from '../utils/effect-utils';
+import { THEME_CONFIG } from '../config/theme-config';
 export interface ActionPanelConfig {
     x: number;
     y: number;
@@ -13,21 +16,22 @@ export interface ActionPanelConfig {
 }
 
 export class ActionPanel extends Phaser.GameObjects.Container {
-    private playHandButton: Phaser.GameObjects.Container;
-    private discardButton: Phaser.GameObjects.Container;
+    private playHandButton: Button;
+    private discardButton: Button;
     private sortPanel: Phaser.GameObjects.Container;
-    private rankButton: Phaser.GameObjects.Container;
-    private suitButton: Phaser.GameObjects.Container;
+    private rankButton: Button;
+    private suitButton: Button;
 
-    private readonly activePlayHandColor = 0x0096FF;
-    private readonly activeDiscardColor = 0xFF4440;
-    private readonly inactiveButtonColor = 0x4C5554;
-    private readonly buttonTextColor = '#FFFFFF';
+    private readonly activePlayHandColor = THEME_CONFIG.COLORS.BALATRO.BLUE;
+    private readonly activeDiscardColor = THEME_CONFIG.COLORS.BALATRO.RED;
+    private readonly inactiveButtonColor = 0x4C4C4C;
+    private readonly buttonTextColor = 0xFFFFFF;
     private readonly buttonWidth = 150;
-    private readonly buttonHeight = 60;
+    private readonly buttonHeight = 100;
     private readonly buttonSpacing = 40;
-    private readonly sortButtonWidth = 70;
-    private readonly sortButtonHeight = 40;
+    private readonly sortButtonWidth = 60;
+    private readonly sortButtonHeight = 60;
+    private readonly sortButtonSpacing = 20;
 
     private handArea?: HandArea;
 
@@ -38,16 +42,46 @@ export class ActionPanel extends Phaser.GameObjects.Container {
         const startX = -totalWidth / 2 + this.buttonWidth / 2;
         
         // Create Play Hand button
-        this.playHandButton = this.createButton(
-            startX,
-            0,
-            this.buttonWidth,
-            this.buttonHeight,
-            'Play Hand',
-            this.inactiveButtonColor,
-            config.onPlayHand
-        );
+        this.playHandButton = new Button(scene, {
+            x: startX,
+            y: 0,
+            width: this.buttonWidth,
+            height: this.buttonHeight,
+            text: 'Play Hand',
+            backgroundColor: this.inactiveButtonColor,
+            textColor: this.buttonTextColor,
+            fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM,
+            onClick: config.onPlayHand
+        });
         this.add(this.playHandButton);
+
+        // Create Discard button
+        this.discardButton = new Button(scene, {
+            x: startX + (this.buttonWidth + this.buttonSpacing) * 2,
+            y: 0,
+            width: this.buttonWidth,
+            height: this.buttonHeight,
+            text: 'Discard',
+            backgroundColor: this.inactiveButtonColor,
+            textColor: this.buttonTextColor,
+            fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM,
+            onClick: config.onDiscard
+        });
+        this.add(this.discardButton);
+
+        applyShadow(this.playHandButton, {
+            shadowColor: 0x000000,
+            angle: -135,
+            distance: 5,
+            alpha: 0.5
+        });
+
+        applyShadow(this.discardButton, {
+            shadowColor: 0x000000,
+            angle: -135,
+            distance: 5,
+            alpha: 0.5
+        });
         
         // Create Sort Hand panel
         this.sortPanel = this.createSortPanel(
@@ -60,52 +94,7 @@ export class ActionPanel extends Phaser.GameObjects.Container {
         );
         this.add(this.sortPanel);
         
-        // Create Discard button
-        this.discardButton = this.createButton(
-            startX + (this.buttonWidth + this.buttonSpacing) * 2,
-            0,
-            this.buttonWidth,
-            this.buttonHeight,
-            'Discard',
-            this.inactiveButtonColor,
-            config.onDiscard
-        );
-        this.add(this.discardButton);
-        
         scene.add.existing(this);
-    }
-    
-    private createButton(
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        text: string,
-        color: number,
-        callback?: () => void
-    ): Phaser.GameObjects.Container {
-        const container = new Phaser.GameObjects.Container(this.scene, x, y);
-        
-        // Create button background
-        const bg = this.scene.add.rectangle(0, 0, width, height, color);
-        bg.setOrigin(0.5);
-        container.add(bg);
-        
-        // Create button text
-        const buttonText = this.scene.add.text(0, 0, text, {
-            fontSize: '20px',
-            color: this.buttonTextColor
-        });
-        buttonText.setOrigin(0.5);
-        container.add(buttonText);
-        
-        // Make button interactive
-        bg.setInteractive({ useHandCursor: true });
-        if (callback) {
-            bg.on('pointerdown', callback);
-        }
-        
-        return container;
     }
     
     private createSortPanel(
@@ -118,41 +107,46 @@ export class ActionPanel extends Phaser.GameObjects.Container {
     ): Phaser.GameObjects.Container {
         const container = new Phaser.GameObjects.Container(this.scene, x, y);
         
-        // Create panel background
-        const bg = this.scene.add.rectangle(0, 0, width, height, 0x333333);
-        bg.setOrigin(0.5);
+        // Create panel background with transparent fill and white border
+        const bg = this.scene.rexUI.add.roundRectangle(0, 0, width, height, 8, 0x000000);
+        bg.setStrokeStyle(2, 0xFFFFFF); // Thêm viền trắng, độ dày 2px
+        bg.setFillStyle(0x000000, 0); // Đặt nền trong suốt (alpha = 0)
         container.add(bg);
         
         // Create Sort Hand title
-        const title = this.scene.add.text(0, -height/4, 'Sort Hand', {
-            fontSize: '16px',
-            color: this.buttonTextColor
+        const title = createThemedText(this.scene, 0, -height/3, 'Sort Hand', {
+            fontSize: THEME_CONFIG.FONTS.SIZES.SMALL,
+            color: 0xFFFFFF
         });
         title.setOrigin(0.5);
         container.add(title);
         
         // Create Rank button
-        this.rankButton = this.createButton(
-            -width/4,
-            height/4,
-            this.sortButtonWidth,
-            this.sortButtonHeight,
-            'Rank',
-            0xFFA500,
-            onSortByRank
-        );
+        this.rankButton = new Button(this.scene, {
+            x: -width/4,
+            y: height/3 - this.sortButtonSpacing,
+            width: this.sortButtonWidth,
+            height: this.sortButtonHeight,
+            text: 'Rank',
+            backgroundColor: THEME_CONFIG.COLORS.BALATRO.YELLOW,
+            textColor: this.buttonTextColor,
+            fontSize: THEME_CONFIG.FONTS.SIZES.TINY,
+            onClick: onSortByRank
+        });
         container.add(this.rankButton);
         
         // Create Suit button
-        this.suitButton = this.createButton(
-            width/4,
-            height/4,
-            this.sortButtonWidth,
-            this.sortButtonHeight,
-            'Suit',
-            0xFFA500,
-            onSortBySuit
-        );
+        this.suitButton = new Button(this.scene, {
+            x: width/4,
+            y: height/3 - this.sortButtonSpacing,
+            width: this.sortButtonWidth,
+            height: this.sortButtonHeight,
+            text: 'Suit',
+            backgroundColor: THEME_CONFIG.COLORS.BALATRO.YELLOW,
+            textColor: this.buttonTextColor,
+            fontSize: THEME_CONFIG.FONTS.SIZES.TINY,
+            onClick: onSortBySuit
+        });
         container.add(this.suitButton);
         
         return container;
@@ -187,11 +181,9 @@ export class ActionPanel extends Phaser.GameObjects.Container {
                                              : this.handArea.getSelectedCards().length > 0;
         
         // Update Play Hand button
-        const playHandButton = this.playHandButton.getAt(0) as Phaser.GameObjects.Rectangle;
-        playHandButton.fillColor = hasSelectedCards ? this.activePlayHandColor : this.inactiveButtonColor;
+        this.playHandButton.setBackgroundColor(hasSelectedCards ? this.activePlayHandColor : this.inactiveButtonColor);
         
         // Update Discard button
-        const discardButton = this.discardButton.getAt(0) as Phaser.GameObjects.Rectangle;
-        discardButton.fillColor = hasSelectedCards ? this.activeDiscardColor : this.inactiveButtonColor;
+        this.discardButton.setBackgroundColor(hasSelectedCards ? this.activeDiscardColor : this.inactiveButtonColor);
     }
 } 

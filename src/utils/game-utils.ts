@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 import { THEME_CONFIG } from "../config/theme-config";
+import { Button, ButtonConfig as UIButtonConfig } from '../ui/button';
 
 /**
  * Wait for a given number of milliseconds
@@ -244,12 +245,14 @@ export function createLabel(
 }
 
 /**
- * Create a stylish button using the theme configuration with basic Phaser objects
+ * Create a stylish button using the Button class
  * @param scene Phaser scene
  * @param x X coordinate
  * @param y Y coordinate
  * @param config Button configuration
- * @returns Container with button elements
+ * @returns Button instance
+ * 
+ * @deprecated Sử dụng Button class trực tiếp thay vì gọi qua utility này
  */
 export function createThemedButton(
     scene: Scene,
@@ -257,103 +260,36 @@ export function createThemedButton(
     y: number,
     config: ButtonConfig = {}
 ): Phaser.GameObjects.Container {
-    const {
-        // Default values from THEME_CONFIG
-        width = 100,
-        height = 40,
-        backgroundColor = THEME_CONFIG.UI.BUTTON.BACKGROUND.DEFAULT,
-        backgroundColorOver = THEME_CONFIG.UI.BUTTON.BACKGROUND.HOVER,
-        backgroundColorOut = THEME_CONFIG.UI.BUTTON.BACKGROUND.DEFAULT,
-        backgroundColorDown = THEME_CONFIG.UI.BUTTON.BACKGROUND.HOVER,
-        backgroundColorDisabled = THEME_CONFIG.UI.BUTTON.BACKGROUND.DISABLED,
-        borderRadius = THEME_CONFIG.UI.BUTTON.BORDER_RADIUS,
-        
-        text = '',
-        textSize = THEME_CONFIG.FONTS.SIZES.MEDIUM,
-        textColor = THEME_CONFIG.COLORS.TEXT,
-        textColorOver = THEME_CONFIG.COLORS.TEXT,
-        textColorDown = THEME_CONFIG.COLORS.TEXT,
-        textColorDisabled = THEME_CONFIG.COLORS.TEXT_SECONDARY,
-        
-        disabled = false,
-        
-        onClick = () => {},
-        onOver = () => {},
-        onOut = () => {},
-        onDown = () => {}
-    } = config;
-    
-    // Create rounded rectangle background
-    const background = scene.add.rectangle(0, 0, width, height, backgroundColor);
-    background.setInteractive({ useHandCursor: true });
-    
-    // Create text
-    const textObject = createThemedText(scene, 0, 0, text, {
-        fontSize: textSize,
-        color: textColor,
-        align: 'center',
-        origin: {x: 0.5, y: 0.5},
-        shadow: true
-    });
-    
-    // Create container to hold all elements
-    const container = scene.add.container(x, y, [background, textObject]);
-    
-    // Setup hit area for the entire button
-    container.setSize(width, height);
-    container.setInteractive();
-    
-    // Event handlers
-    if (!disabled) {
-        container.on('pointerover', () => {
-            background.setFillStyle(backgroundColorOver);
-            textObject.setTint(textColorOver);
-            onOver();
-        });
-        
-        container.on('pointerout', () => {
-            background.setFillStyle(backgroundColorOut);
-            textObject.setTint(textColor);
-            onOut();
-        });
-        
-        container.on('pointerdown', () => {
-            background.setFillStyle(backgroundColorDown);
-            textObject.setTint(textColorDown);
-            onDown();
-        });
-        
-        container.on('pointerup', () => {
-            background.setFillStyle(backgroundColorOver);
-            textObject.setTint(textColorOver);
-            onClick();
-        });
-    } else {
-        // Set disabled style
-        background.setFillStyle(backgroundColorDisabled);
-        textObject.setTint(textColorDisabled);
-    }
-    
-    // Store references to child objects
-    (container as any).background = background;
-    (container as any).text = textObject;
-    
-    // Enable/disable function
-    (container as any).setEnabled = (enabled: boolean) => {
-        if (enabled === !disabled) return; // No change
-        
-        if (enabled) {
-            background.setFillStyle(backgroundColorOut);
-            textObject.setTint(textColor);
-            container.setInteractive();
-        } else {
-            background.setFillStyle(backgroundColorDisabled);
-            textObject.setTint(textColorDisabled);
-            container.disableInteractive();
-        }
+    // Map từ ButtonConfig cũ sang ButtonConfig mới
+    const buttonConfig: UIButtonConfig = {
+        x: 0,
+        y: 0,
+        width: config.width,
+        height: config.height,
+        text: config.text,
+        fontSize: config.textSize,
+        backgroundColor: config.backgroundColor,
+        backgroundColorOver: config.backgroundColorOver,
+        backgroundColorOut: config.backgroundColorOut,
+        backgroundColorDown: config.backgroundColorDown,
+        backgroundColorDisabled: config.backgroundColorDisabled,
+        textColor: config.textColor,
+        textColorOver: config.textColorOver,
+        textColorDown: config.textColorDown,
+        textColorDisabled: config.textColorDisabled,
+        borderRadius: config.borderRadius,
+        disabled: config.disabled,
+        onClick: config.onClick,
+        onHover: config.onOver,
+        onOut: config.onOut,
+        onDown: config.onDown
     };
     
-    return container;
+    // Tạo button mới sử dụng Button class
+    const button = new Button(scene, buttonConfig);
+    button.setPosition(x, y);
+    
+    return button;
 }
 
 /**

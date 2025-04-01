@@ -1,7 +1,7 @@
 import { Scene } from "phaser";
 import { CardArea, AreaProps, CardTransform } from "./card-area";
 import { PlayingCardDisplay } from "../playing-card-display";
-import { sortBySuitInternal, sortByRankInternal } from "../../utils/card-helpers";
+import { sortBySuitInternal, sortByRankInternal } from "../../utils/card-utils";
 import { Toast } from "../../ui/toast";
 import { BoardManager } from "../../managers/board-manager";
 import { PlayingCard } from "../../objects/playing-card";
@@ -40,11 +40,7 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
     public override removeCardDisplay(card: PlayingCardDisplay): PlayingCardDisplay | undefined {
         const removedCard = super.removeCardDisplay(card);
         if (removedCard) {
-            // Remove card from selected cards if it exists
-            const selectedIndex = this.selectedCards.indexOf(card);
-            if (selectedIndex !== -1) {
-                this.selectedCards.splice(selectedIndex, 1);
-            }
+            this.unselectCard(removedCard);
         }
         return removedCard;
     }
@@ -80,17 +76,17 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
     }
     
     protected override onCardClick(cardDisplay: PlayingCardDisplay): void {
-        this.selectCard(cardDisplay);
+        if (this.isCardSelected(cardDisplay)) {
+            this.unselectCard(cardDisplay);
+        } else {
+            this.selectCard(cardDisplay);
+        }
      }
     
     public selectCard(cardDisplay: PlayingCardDisplay): void {
         // Lower down card if it is already selected
         const index = this.selectedCards.indexOf(cardDisplay);
         if (index !== -1) {
-            // If card is already selected, then unselect it
-            this.selectedCards.splice(index, 1);
-            cardDisplay.lowerDown();
-            this.emit('card-selected-changed', this.selectedCards);
             return;
         }
 
@@ -116,8 +112,17 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
         this.emit('card-selected-changed', this.selectedCards);
     }
 
-    public isCardSelected(card: PlayingCard): boolean {
-        return this.selectedCards.some(cardDisplay => cardDisplay.getCard() === card);
+    public unselectCard(cardDisplay: PlayingCardDisplay): void {
+        const index = this.selectedCards.indexOf(cardDisplay);
+        if (index !== -1) {
+            this.selectedCards.splice(index, 1);
+            cardDisplay.lowerDown();
+            this.emit('card-selected-changed', this.selectedCards);
+        }
+    }
+
+    public isCardSelected(cardDisplay: PlayingCardDisplay): boolean {
+        return this.selectedCards.includes(cardDisplay);
     }
 
     public getSelectedCards(): PlayingCard[] {
@@ -176,14 +181,5 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
 
     private loadSortType(): SortType {
         return LocalStorage.getInstance().get('hand_sort_type', SortType.NONE) as SortType;
-    }
-
-    /**
-     * Remove currently selected cards from hand
-     */
-    public removeSelectedCards(): void {
-        const cardsToRemove = [...this.selectedCards];
-        cardsToRemove.forEach(card => this.removeCardDisplay(card));
-        this.clearSelection();
     }
 }   

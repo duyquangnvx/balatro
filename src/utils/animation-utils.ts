@@ -114,7 +114,7 @@ export async function animateScoreText(cardDisplay: PlayingCardDisplay, points: 
 
     const centerX = cardDisplay.x;
     const startX = centerX - (chars.length * fontSize) / 2 + fontSize / 2;
-    const y = cardDisplay.y - (cardDisplay.height / 2 + 100);
+    const y = cardDisplay.y - (cardDisplay.height / 2 + 70);
 
     const texts = chars.map((char, index) => {
         const x = startX + index * fontSize;
