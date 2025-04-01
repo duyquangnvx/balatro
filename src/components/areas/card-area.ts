@@ -215,4 +215,11 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
             card.update();
         }
     }
+
+    destroy(): void {
+        this.cardDisplays.forEach(card => card.destroy());
+        this.cardDisplays.length = 0;
+        this.cardTargetTransforms.clear();
+        this.autoArrange = false;
+    }
 }

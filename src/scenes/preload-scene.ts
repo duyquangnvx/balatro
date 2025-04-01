@@ -11,11 +11,13 @@ export class PreloadScene extends BaseScene {
     private static readonly ATLAS_PATH = 'atlases/';
     private static readonly IMAGE_PATH = 'images/';
     private static readonly SOUND_PATH = 'sounds/';
+    private static readonly FONT_PATH = 'fonts/';
 
     private static readonly ATLASES = [
         'card-fronts',
         'card-backs',
         'card-enhancements',
+        'chips'
     ];
     
     private static readonly IMAGES = [
@@ -25,6 +27,10 @@ export class PreloadScene extends BaseScene {
 
     private static readonly SOUNDS = [
         // 'click',
+    ];
+
+    private static readonly FONTS = [
+        'm6x11plus'
     ];
 
     constructor() {
@@ -44,7 +50,7 @@ export class PreloadScene extends BaseScene {
 
         // Preload atlases
         PreloadScene.ATLASES.forEach(atlas => {
-        this.load.atlas(atlas, PreloadScene.ATLAS_PATH + atlas + '.png', PreloadScene.ATLAS_PATH + atlas + '.json');
+            this.load.atlas(atlas, PreloadScene.ATLAS_PATH + atlas + '.png', PreloadScene.ATLAS_PATH + atlas + '.json');
         });
 
         // Preload images   
@@ -55,6 +61,11 @@ export class PreloadScene extends BaseScene {
         // Preload sounds
         PreloadScene.SOUNDS.forEach(sound => {
             this.load.audio(sound, PreloadScene.SOUND_PATH + sound + '.wav');
+        });
+
+        // Preload bitmap fonts
+        PreloadScene.FONTS.forEach(font => {
+            this.load.bitmapFont(font, PreloadScene.FONT_PATH + font + '.png', PreloadScene.FONT_PATH + font + '.xml');
         });
     }
 

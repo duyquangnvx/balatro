@@ -51,10 +51,10 @@ const SCENE_CONFIG = {
         height: 80
     },
     BLIND_PANEL: {
-        x: 150,
+        x: 200,
         y: GAME_CONFIG.SCREEN_HEIGHT / 2,
         width: 300,
-        height: 600
+        height: GAME_CONFIG.SCREEN_HEIGHT
     }
 }
 
@@ -100,6 +100,15 @@ export class GameScene extends BaseScene {
         this.scoreManager.startNewGame();
         this.runManager.startNewRun();
         this.newGame();
+        
+        // Thêm nút để chuyển đến TestScene
+        const testButton = this.add.text(this.cameras.main.width - 150, 10, 'TEST CONTAINERS', 
+            { fontSize: '14px', backgroundColor: '#333333', color: '#ffffff' })
+            .setPadding(8)
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.scene.start('TestScene');
+            });
     }
 
     update(): void {

@@ -3,8 +3,11 @@ import { BootScene } from './scenes/boot-scene';
 import { PreloadScene } from './scenes/preload-scene';
 import { GameScene } from './scenes/game-scene';
 import { LoadingScene } from './scenes/loading-scene';
+import { TestScene } from './scenes/test-scene';
 import { TransitionFade } from './scenes/transitions/transition-scene';
 import { GAME_CONFIG } from './config/game-config';
+import { GameLoop } from './utils/game-loop';
+import RexUIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -13,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: GAME_CONFIG.SCREEN_WIDTH,
     height: GAME_CONFIG.SCREEN_HEIGHT,
     parent: 'game-container',
-    scene: [BootScene, TransitionFade, PreloadScene, LoadingScene, GameScene],
+    scene: [BootScene, TransitionFade, PreloadScene, LoadingScene, GameScene, TestScene],
     physics: {
         default: 'arcade',
         arcade: {
@@ -28,7 +31,16 @@ const config: Phaser.Types.Core.GameConfig = {
     loader: {
         baseURL: '',
         path: 'assets/',
+    },
+    plugins: {
+        scene: [{
+            key: 'rexUI',
+            plugin: RexUIPlugin,
+            mapping: 'rexUI'
+        }]
     }
 };
 
-new Phaser.Game(config);
+// Khởi tạo game và GameLoop
+const game = new Phaser.Game(config);
+GameLoop.init(game);
