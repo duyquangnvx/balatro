@@ -271,6 +271,21 @@ export class GameScene extends BaseScene {
     async animatePlayCards(cards: PlayingCard[]): Promise<void> {
         const cardDisplays = cards.map(card => this.handDisplay.findCardDisplay(card));
 
+        // Hide the action panel
+        this.actionPanel.setVisible(false);
+        
+        // Save the initial position of the hand area
+        const originalPosition = this.handDisplay.getPosition();
+        
+        // Move the hand area down (100px away from the initial position)
+        await this.handDisplay.moveTo(
+            originalPosition.x, 
+            originalPosition.y + 100, 
+            { duration: 300, ease: 'Power2' }
+        );
+
+        await wait(500);
+
         // Play the cards from hand to play area
         for (const cardDisplay of cardDisplays) {
             if (cardDisplay) {
@@ -284,11 +299,17 @@ export class GameScene extends BaseScene {
         }
         
         // Pause to show the played cards
-        await wait(500);
+        await wait(400);
         
         // Identify the best poker hand
         const pokerHandCards = getPokerHandCards(cards);
         const pokerHandCardDisplays = pokerHandCards.map(card => this.playDisplay.findCardDisplay(card));
+        
+        // Sắp xếp card displays từ trái sang phải (theo giá trị x)
+        pokerHandCardDisplays.sort((a, b) => {
+            if (!a || !b) return 0;
+            return a.x - b.x;
+        });
 
         // Lift up the cards
         for (const cardDisplay of pokerHandCardDisplays) {
@@ -305,6 +326,8 @@ export class GameScene extends BaseScene {
                 }
             }
         }
+
+        await wait(200);
         
         // Discard the cards from play area to discard area
         for (const cardDisplay of cardDisplays) {
@@ -318,6 +341,16 @@ export class GameScene extends BaseScene {
                 await wait(100);
             }
         }
+        
+        // Move hand area back to original position
+        await this.handDisplay.moveTo(
+            originalPosition.x, 
+            originalPosition.y, 
+            { duration: 300, ease: 'Power2' }
+        );
+        
+        // Show the action panel after completion
+        this.actionPanel.setVisible(true);
     }
 
     /**

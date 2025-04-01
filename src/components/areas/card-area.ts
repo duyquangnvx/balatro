@@ -198,6 +198,52 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
         this.props.y = y;
     }
 
+    /**
+     * Di chuyển card area đến một vị trí mới với animation
+     * @param x Tọa độ x đích
+     * @param y Tọa độ y đích
+     * @param options Các tùy chọn cho animation
+     * @returns Promise sẽ resolve khi animation hoàn thành
+     */
+    public moveTo(x: number, y: number, options: {
+        duration?: number,
+        ease?: string,
+        delay?: number
+    } = {}): Promise<void> {
+        return new Promise<void>((resolve) => {
+            // Lấy vị trí hiện tại
+            const currentPosition = this.getPosition();
+            
+            // Tạo object để tween
+            const tweenTarget = { 
+                x: currentPosition.x, 
+                y: currentPosition.y 
+            };
+            
+            // Tạo tween config
+            const tweenConfig: Phaser.Types.Tweens.TweenBuilderConfig = {
+                targets: tweenTarget,
+                x,
+                y,
+                duration: options.duration || 300,
+                ease: options.ease || 'Power2',
+                delay: options.delay || 0,
+                onUpdate: () => {
+                    // Cập nhật vị trí của card area theo giá trị hiện tại của tween
+                    this.setPosition(tweenTarget.x, tweenTarget.y);
+                },
+                onComplete: () => {
+                    // Đảm bảo rằng vị trí cuối cùng chính xác với giá trị mong muốn
+                    this.setPosition(x, y);
+                    resolve();
+                }
+            };
+            
+            // Thực hiện tween
+            this.scene.tweens.add(tweenConfig);
+        });
+    }
+
     public setAutoArrange(autoArrange: boolean): void {
         this.autoArrange = autoArrange;
     }
