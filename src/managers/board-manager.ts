@@ -91,10 +91,6 @@ export class BoardManager {
         this.discardedCards = [];
         this.playedCards = [];
         this.deckCards = Array.from(this.cardMap.values());
-
-        this.deckCards.forEach(card => {
-            card.setFlipped(false);
-        });
         this.shuffleDeck();
     }
 
@@ -130,6 +126,9 @@ export class BoardManager {
 
     private shuffleDeck(): void {
         Phaser.Utils.Array.Shuffle(this.deckCards);
+        this.deckCards.forEach(card => {
+            card.setFlipped(false);
+        });
     }
 
     public dealCardsToHand(count: number): PlayingCard[] {

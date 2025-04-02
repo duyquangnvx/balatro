@@ -5,7 +5,7 @@ import { PlayingCardDisplay } from "../playing-card-display";
 /**
  * Area for displaying discarded cards
  */
-export class DiscardArea extends CardArea {
+export class DiscardArea extends CardArea<PlayingCardDisplay> {
     constructor(scene: Scene, config: AreaProps, boardManager: BoardManager) {
         super(scene, config, boardManager);
     }

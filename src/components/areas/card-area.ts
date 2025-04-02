@@ -262,6 +262,10 @@ export class CardArea<T extends CardDisplay = CardDisplay> extends Phaser.Events
         }
     }
 
+    public getCardDisplays(): T[] {
+        return this.cardDisplays;
+    }
+
     destroy(): void {
         this.cardDisplays.forEach(card => card.destroy());
         this.cardDisplays.length = 0;

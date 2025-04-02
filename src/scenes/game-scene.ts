@@ -160,6 +160,25 @@ export class GameScene extends BaseScene {
         await this.animateDealCards(initCards);
     }
 
+    async startNextRound(): Promise<void> {
+        const runManager = this.gameManager.getRunManager();
+        const isGameCompleted = !runManager.advanceToNextBlind();
+
+        if (isGameCompleted) {
+            this.showGameOverScreen(true);
+            return;
+        }
+
+        await this.animateReturnCards();
+
+        this.gameManager.startNewRound();
+        this.updateBlindPanel();
+
+        const boardManager = this.gameManager.getBoardManager();
+        const initCards = boardManager.getHandCards();
+        await this.animateDealCards(initCards);
+    }
+
     /**
      * Handle play hand action
      */
@@ -182,11 +201,22 @@ export class GameScene extends BaseScene {
 
         // Deal new cards to replace the ones played
         await this.animatePlayCards(playResult);
+
         await wait(200);
-        await this.animateDealCards(playResult.newCards);
-  
+
         //
-        this.checkGameOver();
+        if (runManager.isCurrentBlindCompleted()) {
+            this.startNextRound();
+            return 
+        }
+        
+        const isOutOfPlays = runManager.getRemainingPlays() === 0;
+        if (isOutOfPlays) {
+            this.showGameOverScreen(false);
+            return;
+        }
+
+        await this.animateDealCards(playResult.newCards);
     }
 
     /**
@@ -215,9 +245,6 @@ export class GameScene extends BaseScene {
         await this.animateDiscardCards(selectedCards);
         await wait(200);
         await this.animateDealCards(newCards);
-        
-        // Kiểm tra nếu trò chơi kết thúc
-        this.checkGameOver();
     }
 
     private onCardSelectedChanged(): void {
@@ -241,6 +268,7 @@ export class GameScene extends BaseScene {
     private async animateDealCards(cards: PlayingCard[]): Promise<void> {
         for (const card of cards) {
             const cardDisplay = this.deckDisplay.drawCard();
+            console.log('cardDisplay', cardDisplay);
             if (cardDisplay) {
                 cardDisplay.setCard(card);
                 cardDisplay.setFlipped(true);
@@ -253,7 +281,7 @@ export class GameScene extends BaseScene {
         }
     }
 
-    async animatePlayCards(playResult: PlayResult): Promise<void> {
+    private async animatePlayCards(playResult: PlayResult): Promise<void> {
         const { playedCards, pokerCards, newCards, scoreResult } = playResult;
         const cardDisplays = playedCards.map(card => this.handDisplay.findCardDisplay(card));
 
@@ -271,7 +299,7 @@ export class GameScene extends BaseScene {
         );
 
         // Wait for the hand area to move down
-        await wait(500);
+        await wait(200);
 
         // Play the cards from hand to play area
         for (const cardDisplay of cardDisplays) {
@@ -353,7 +381,7 @@ export class GameScene extends BaseScene {
      * Animate discarding cards from the hand to the discard pile
      * @param cards - The cards to discard
      */ 
-    async animateDiscardCards(cards: PlayingCard[]): Promise<void> {
+    private async animateDiscardCards(cards: PlayingCard[]): Promise<void> {
         for (const card of cards) {
             const cardDisplay = this.handDisplay.findCardDisplay(card);
             if (cardDisplay) {
@@ -368,6 +396,34 @@ export class GameScene extends BaseScene {
         }
     }  
 
+    private async animateReturnCards(): Promise<void> {
+        const handCards = this.handDisplay.getCardDisplays();
+        for (const cardDisplay of handCards) {
+            this.discardDisplay.addCardDisplay(cardDisplay);
+            await wait(100);
+        }
+        
+        this.handDisplay.clearCards();
+
+        await wait(2000);
+
+        const discardedCardDisplays = this.discardDisplay.getCardDisplays();
+        for (const cardDisplay of discardedCardDisplays) {
+            if (cardDisplay) {
+                this.discardDisplay.removeCardDisplay(cardDisplay);
+                this.deckDisplay.addCardDisplay(cardDisplay);
+
+                cardDisplay.lowerDown();
+                cardDisplay.setFlipped(false);
+                cardDisplay.animateFlip(false);
+
+                await wait(100);
+            }
+        }
+
+        await wait(1500);
+    }
+    
     private updateBlindPanel(): void {
         const runManager = this.gameManager.getRunManager();
 
@@ -396,28 +452,7 @@ export class GameScene extends BaseScene {
     }
 
 
-    private checkGameOver(): void {
-        const runManager = this.gameManager.getRunManager();
-        
-        if (runManager.isCurrentBlindCompleted()) {
-           
-            const isGameCompleted = runManager.advanceToNextBlind();
-            
-            if (isGameCompleted) {
-                this.showGameOverScreen(true);
-                return;
-            }
-            
-            this.updateBlindPanel();
-            return;
-        }
-        
-        const isOutOfPlays = runManager.getRemainingPlays() === 0;
-        
-        if (isOutOfPlays) {
-            this.showGameOverScreen(false);
-        }
-    }
+
     
     /**
      * Hiển thị màn hình game over

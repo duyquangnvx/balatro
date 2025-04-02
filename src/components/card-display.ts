@@ -269,7 +269,7 @@ export abstract class CardDisplay<T extends Card = Card> extends Phaser.GameObje
     public updateDisplay(): void {
         this.updateTextures();    
 
-        const flipped = this.isFlipped() || !this.isUnknown();
+        const flipped = this.isFlipped();
         this.frontSprite.setVisible(flipped);
         this.backSprite.setVisible(!flipped);
         this.enhancementSprite.setVisible(flipped);
