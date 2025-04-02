@@ -80,49 +80,49 @@ export const GAME_CONFIG = {
         [PokerHandType.TWO_PAIR]: {
             baseChips: 15,
             chipsPerLevel: 5,
-            baseMultiplier: 1,
+            baseMultiplier: 2,
             multiplierPerLevel: 0.5,
             maxLevel: 10
         },
         [PokerHandType.THREE_OF_A_KIND]: {
             baseChips: 20,
             chipsPerLevel: 10,
-            baseMultiplier: 2,
+            baseMultiplier: 3,
             multiplierPerLevel: 1,
             maxLevel: 10
         },
         [PokerHandType.STRAIGHT]: {
             baseChips: 30,
             chipsPerLevel: 10,
-            baseMultiplier: 2,
+            baseMultiplier: 4,
             multiplierPerLevel: 1,
             maxLevel: 10
         },
         [PokerHandType.FLUSH]: {
             baseChips: 35,
             chipsPerLevel: 15,
-            baseMultiplier: 3,
+            baseMultiplier: 4,
             multiplierPerLevel: 1,
             maxLevel: 10
         },
         [PokerHandType.FULL_HOUSE]: {
             baseChips: 40,
             chipsPerLevel: 15,
-            baseMultiplier: 3,
+            baseMultiplier: 4,
             multiplierPerLevel: 1,
             maxLevel: 10
         },
         [PokerHandType.FOUR_OF_A_KIND]: {
             baseChips: 45,
             chipsPerLevel: 20,
-            baseMultiplier: 4,
+            baseMultiplier: 7,
             multiplierPerLevel: 1.5,
             maxLevel: 10
         },
         [PokerHandType.STRAIGHT_FLUSH]: {
             baseChips: 50,
             chipsPerLevel: 25,
-            baseMultiplier: 6,
+            baseMultiplier: 8,
             multiplierPerLevel: 2,
             maxLevel: 10
         },
@@ -137,21 +137,21 @@ export const GAME_CONFIG = {
         [PokerHandType.FIVE_OF_A_KIND]: {
             baseChips: 90,
             chipsPerLevel: 35,
-            baseMultiplier: 10,
+            baseMultiplier: 12,
             multiplierPerLevel: 2.5,
             maxLevel: 10
         },
         [PokerHandType.FLUSH_HOUSE]: {
             baseChips: 80,
             chipsPerLevel: 30,
-            baseMultiplier: 9,
+            baseMultiplier: 14,
             multiplierPerLevel: 2,
             maxLevel: 10
         },
         [PokerHandType.FLUSH_FIVE]: {
             baseChips: 100,
             chipsPerLevel: 40,
-            baseMultiplier: 15,
+            baseMultiplier: 16,
             multiplierPerLevel: 3,
             maxLevel: 10
         }

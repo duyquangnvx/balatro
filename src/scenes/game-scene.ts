@@ -5,15 +5,16 @@ import { DeckArea } from "../components/areas/deck-area";
 import { HandArea, SortType } from "../components/areas/hand-area";
 import { PlayArea } from "../components/areas/play-area";
 import { BaseScene } from "./base-scene";
-import { GameManager } from "../managers/game-manager";
+import { GameManager, PlayResult } from "../managers/game-manager";
 import { wait } from "../utils/game-utils";
 import { PlayingCard } from "../objects/playing-card";
 import { ActionPanel } from "../ui/action-panel";
 import { BlindPanel } from '../ui/blind-panel';
 import { DiscardArea } from "../components/areas/discard-area";
-import { evaluatePokerHand, getCardPointValue, getPokerHandName } from '../utils/poker-utils';
+import { evaluatePokerHand } from '../utils/poker-utils';
 import { animateScoreText } from '../utils/animation-utils';
 import { THEME_CONFIG } from "../config/theme-config";
+import { calculateCardScore } from "../utils/scoring";
 
 const SCENE_CONFIG = {
     BACKGROUND: {
@@ -145,9 +146,6 @@ export class GameScene extends BaseScene {
     private setupBlindPanel(): void {
         // Create the blind panel
         this.blindPanel = new BlindPanel(this, SCENE_CONFIG.BLIND_PANEL);
-        
-        // Update the panel with current blind information
-        this.updateBlindPanel();
     }
 
     async startNewGame(): Promise<void> {
@@ -171,28 +169,24 @@ export class GameScene extends BaseScene {
             return;
         }
 
-        // Get selected cards
-        const selectedCards = this.handDisplay.getSelectedCards();
-        
         // Check if there are selected cards
+        const selectedCards = this.handDisplay.getSelectedCards();
         if (selectedCards.length === 0) {
             return;
         }
         
-        const newCards = this.gameManager.playCards(selectedCards);
+        const playResult = this.gameManager.playCards(selectedCards);
 
-        this.handDisplay.clearSelection();
-
-        this.blindPanel.updateHandsAndDiscards(
-            runManager.getRemainingPlays(),
-            runManager.getRemainingDiscards()
-        );
+        this.handDisplay.clearSelection(); 
+        this.blindPanel.updateCounterWithAnimation('hands', runManager.getRemainingPlays());
 
         // Deal new cards to replace the ones played
-        await this.animatePlayCards(selectedCards);
+        await this.animatePlayCards(playResult);
         await wait(200);
-        await this.animateDealCards(newCards);
+        await this.animateDealCards(playResult.newCards);
   
+        //
+        this.checkGameOver();
     }
 
     /**
@@ -216,19 +210,28 @@ export class GameScene extends BaseScene {
         const newCards = this.gameManager.discardCards(selectedCards);
 
         this.handDisplay.clearSelection();
-
-        this.blindPanel.updateHandsAndDiscards(
-            runManager.getRemainingPlays(),
-            runManager.getRemainingDiscards()
-        );
+        this.blindPanel.updateCounterWithAnimation('discards', runManager.getRemainingDiscards());
 
         await this.animateDiscardCards(selectedCards);
         await wait(200);
         await this.animateDealCards(newCards);
+        
+        // Kiểm tra nếu trò chơi kết thúc
+        this.checkGameOver();
     }
 
     private onCardSelectedChanged(): void {
-        this.updateBlindPanel();
+        const runManager = this.gameManager.getRunManager();
+
+        const selectedCards = this.handDisplay.getSelectedCards();
+        if (selectedCards.length > 0) {
+            const pokerHand = evaluatePokerHand(selectedCards);
+            const pokerHandState = runManager.getPokerHandState(pokerHand.handType);
+            this.blindPanel.updatePokerHand(pokerHandState);
+        }
+        else {
+            this.blindPanel.updatePokerHand();
+        }
     }
 
     /**
@@ -250,8 +253,9 @@ export class GameScene extends BaseScene {
         }
     }
 
-    async animatePlayCards(cards: PlayingCard[]): Promise<void> {
-        const cardDisplays = cards.map(card => this.handDisplay.findCardDisplay(card));
+    async animatePlayCards(playResult: PlayResult): Promise<void> {
+        const { playedCards, pokerCards, newCards, scoreResult } = playResult;
+        const cardDisplays = playedCards.map(card => this.handDisplay.findCardDisplay(card));
 
         // Hide the action panel
         this.actionPanel.setVisible(false);
@@ -266,6 +270,7 @@ export class GameScene extends BaseScene {
             { duration: 300, ease: 'Power2' }
         );
 
+        // Wait for the hand area to move down
         await wait(500);
 
         // Play the cards from hand to play area
@@ -281,13 +286,10 @@ export class GameScene extends BaseScene {
         }
         
         // Pause to show the played cards
-        await wait(400);
+        await wait(500);
         
-        // Identify the best poker hand
-        const pokerHand = evaluatePokerHand(cards);
-        const pokerHandCardDisplays = pokerHand.cards.map(card => this.playDisplay.findCardDisplay(card));
-        
-        // Sắp xếp card displays từ trái sang phải (theo giá trị x)
+        // Sort the card displays from left to right (by x value)
+        const pokerHandCardDisplays = pokerCards.map(card => this.playDisplay.findCardDisplay(card));
         pokerHandCardDisplays.sort((a, b) => {
             if (!a || !b) return 0;
             return a.x - b.x;
@@ -298,18 +300,28 @@ export class GameScene extends BaseScene {
             await cardDisplay?.liftUp();
         }
 
+        await wait(200);
+
         // Animate the score text
         for (const cardDisplay of pokerHandCardDisplays) {
             if (cardDisplay) {
                 const card = cardDisplay.getCard();
                 if (card) {
-                    const points = getCardPointValue(card);
-                    await animateScoreText(cardDisplay, points);
+                    const cardChips = scoreResult.cardScores[card.getId()].chips;
+                    this.blindPanel.addCounterWithAnimation('chips', cardChips);
+                    await animateScoreText(cardDisplay, cardChips);
                 }
             }
         }
 
         await wait(200);
+
+        // Reset the chips and multiplier
+        this.blindPanel.updateCounterWithAnimation('chips', 0);
+        this.blindPanel.updateCounterWithAnimation('multiplier', 0);
+
+        const runManager = this.gameManager.getRunManager();
+        this.blindPanel.updateCounterWithAnimation('current_score', runManager.getCurrentScore());
         
         // Discard the cards from play area to discard area
         for (const cardDisplay of cardDisplays) {
@@ -333,6 +345,8 @@ export class GameScene extends BaseScene {
         
         // Show the action panel after completion
         this.actionPanel.setVisible(true);
+
+        this.blindPanel.resetPokerHand();
     }
 
     /**
@@ -357,6 +371,11 @@ export class GameScene extends BaseScene {
     private updateBlindPanel(): void {
         const runManager = this.gameManager.getRunManager();
 
+        const blindState = runManager.getCurrentBlind();
+        if (blindState) {
+            this.blindPanel.updateBlind(blindState);
+        }
+
         const selectedCards = this.handDisplay.getSelectedCards();
         if (selectedCards.length > 0) {
             const pokerHand = evaluatePokerHand(selectedCards);
@@ -367,17 +386,54 @@ export class GameScene extends BaseScene {
             this.blindPanel.updatePokerHand();
         }
 
-        this.blindPanel.updateAnteAndRound(
-            runManager.getCurrentAnteIndex() + 1,
-            runManager.getTotalAntes(),
-            runManager.getCurrentRound()
-        );
+        this.blindPanel.updateCounterWithAnimation('ante', runManager.getCurrentAnteIndex() + 1);
+        this.blindPanel.updateCounterWithAnimation('round', runManager.getCurrentRound());
         
-        this.blindPanel.updateHandsAndDiscards(
-            runManager.getRemainingPlays(),
-            runManager.getRemainingDiscards()
-        );
+        this.blindPanel.updateCounterWithAnimation('hands', runManager.getRemainingPlays());
+        this.blindPanel.updateCounterWithAnimation('discards', runManager.getRemainingDiscards());
 
-        this.blindPanel.updateMoney(runManager.getMoney());
+        this.blindPanel.updateCounterWithAnimation('money', runManager.getMoney());
+    }
+
+
+    private checkGameOver(): void {
+        const runManager = this.gameManager.getRunManager();
+        
+        if (runManager.isCurrentBlindCompleted()) {
+           
+            const isGameCompleted = runManager.advanceToNextBlind();
+            
+            if (isGameCompleted) {
+                this.showGameOverScreen(true);
+                return;
+            }
+            
+            this.updateBlindPanel();
+            return;
+        }
+        
+        const isOutOfPlays = runManager.getRemainingPlays() === 0;
+        
+        if (isOutOfPlays) {
+            this.showGameOverScreen(false);
+        }
+    }
+    
+    /**
+     * Hiển thị màn hình game over
+     * @param isWin - Người chơi thắng hay thua
+     */
+    private showGameOverScreen(isWin: boolean): void {
+        const runManager = this.gameManager.getRunManager();
+        const currentScore = runManager.getCurrentScore();
+        const money = runManager.getMoney();
+        
+        // Chuyển sang scene GameOver thay vì hiển thị overlay
+        this.scene.start('GameOverScene', {
+            isWin: isWin,
+            score: currentScore,
+            money: money,
+            round: runManager.getCurrentRound()
+        });
     }
 }   

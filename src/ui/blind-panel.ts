@@ -16,6 +16,8 @@ export enum BlindType {
     RIVER = 'river'
 }
 
+export type BlindCounter = 'hands' | 'discards' | 'money' | 'reward' | 'ante' | 'round' | 'target_score' | 'current_score' | 'multiplier' | 'chips';
+
 export interface BlindPanelConfig {
     x: number;
     y: number;
@@ -70,9 +72,11 @@ export class BlindPanel extends Phaser.GameObjects.Container {
     private readonly redButtonColor = 0xEC4D3C;
     private readonly yellowButtonColor = 0xF2A516;
 
+    private readonly counters: Record<string, Phaser.GameObjects.BitmapText> = {};
+
     constructor(scene: Scene, config: BlindPanelConfig) {
         super(scene, config.x, config.y);
-
+        
         const width = config.width || 300;
         const height = config.height || 600;
 
@@ -209,6 +213,12 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             '1'
         );
         this.add(this.roundDisplay);
+
+        this.counters['hands'] = this.handsValueText;
+        this.counters['discards'] = this.discardsValueText;
+        this.counters['money'] = this.moneyValueText;
+        this.counters['ante'] = this.anteValueText;
+        this.counters['round'] = this.roundValueText;
     }
 
     private createTitleBar(x: number, y: number, width: number, height: number): RoundedContainer {
@@ -347,6 +357,9 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         this.centerTargetScoreElements();
         this.centerRewardElements();
         
+        this.counters['target_score'] = this.targetScoreText;
+        this.counters['reward'] = this.moneyRewardText;
+
         return container;
     }
 
@@ -458,6 +471,8 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         // Căn giữa các phần tử ban đầu
         this.centerScoreElements();
         
+        this.counters['current_score'] = this.currentScoreText;
+
         return container;
     }
 
@@ -513,7 +528,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             y: height/5,
             width: width/2 - 30,
             height: height/2 - 10,
-            backgroundColor: this.redButtonColor,
+            backgroundColor: this.blueButtonColor,
             radius: 8
         });
         
@@ -550,7 +565,7 @@ export class BlindPanel extends Phaser.GameObjects.Container {
             y: height/5,
             width: width/2 - 30,
             height: height/2 - 10,
-            backgroundColor: this.blueButtonColor,
+            backgroundColor: this.redButtonColor,
             radius: 8
         });
         
@@ -567,6 +582,9 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         );
         multiplierBox.add(this.multiplierText);
         container.add(multiplierBox);
+
+        this.counters['multiplier'] = this.multiplierText;
+        this.counters['chips'] = this.chipsValueText;
         
         return container;
     }
@@ -646,15 +664,9 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         );
         container.add(this.moneyValueText);
         
+        this.counters['money'] = this.moneyValueText;
+
         return container;
-    }
-
-    public updateRoundScore(score: number): void {
-        // Cập nhật điểm hiện tại
-        this.currentScoreText.setText(score.toString());
-
-        // Căn giữa lại các phần tử sau khi cập nhật text
-        this.centerScoreElements();
     }
 
     /**
@@ -669,12 +681,15 @@ export class BlindPanel extends Phaser.GameObjects.Container {
 
         this.titleText.setText(blind.config.name);
         
-        this.targetScoreText.setText(blind.requiredScore.toString());
-        this.moneyValueText.setText(`$${blind.config.reward}`);
-        
-        // todo: update icon
+        this.updateCounter('target_score', blind.requiredScore);
+        this.updateCounter('reward', blind.config.reward);
+        this.updateCounter('current_score', blind.currentScore);
+    }
 
-        this.centerTargetScoreElements();
+    public resetPokerHand(): void {
+        this.pokerHandText.setText('');
+        this.chipsValueText.setText('0');
+        this.multiplierText.setText('0');
     }
 
     public updatePokerHand(pokerHand?: PokerHandState): void {
@@ -690,40 +705,60 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         }
     }
 
+    public updateCounter(counter: BlindCounter, value: number): void {
+        this.counters[counter].setText(value.toString());
 
-    /**
-     * Cập nhật thông tin ante và round
-     */
-    public updateAnteAndRound(currentAnte: number, totalAntes: number, currentRound: number): void {
-        // Cập nhật ante
-        this.anteValueText.setText(`${currentAnte}/${totalAntes}`);
-        
-        // Cập nhật round
-        this.roundValueText.setText(currentRound.toString());
-    }
-
-    /**
-     * Cập nhật thông tin hands và discards còn lại
-     */
-    public updateHandsAndDiscards(hands: number, discards: number): void {
-        // Cập nhật hands
-        this.handsValueText.setText(hands.toString());
-        
-        // Cập nhật discards
-        this.discardsValueText.setText(discards.toString());
-    }
-
-    /**
-     * Cập nhật số tiền hiện tại
-     */
-    public updateMoney(money: number): void {
-        // Cập nhật money ở display chính
-        this.moneyValueText.setText(`$${money}`);
-        
-        // Cập nhật money ở reward display nếu cần
-        if (this.moneyRewardText) {
-            this.moneyRewardText.setText(`$${money}`);
-            this.centerRewardElements();
+        switch (counter) {
+            case 'current_score':
+                this.centerScoreElements(); 
+                break;
+            case 'target_score':
+                this.centerTargetScoreElements();
+                break;
+            case 'reward':
+                this.centerRewardElements();
+                break;
         }
+    }
+
+    public async addCounterWithAnimation(counter: BlindCounter, value: number, duration: number = 500): Promise<void>    {
+        const currentValue = parseInt(this.counters[counter].text) || 0;
+        
+        return new Promise((resolve) => {
+            this.scene.tweens.addCounter({
+                from: currentValue,
+                to: currentValue + value,
+                duration: duration,
+                ease: 'Power1',
+                onComplete: () => {
+                    resolve();
+                },
+                onUpdate: (tween) => {
+                    const value = Math.floor(tween.getValue());
+                    this.updateCounter(counter, value);
+                }
+            });
+        });
+    }
+
+    public async updateCounterWithAnimation(counter: BlindCounter, value: number, duration: number = 500): Promise<void> {
+        // Lấy giá trị hiện tại
+        const currentValue = parseInt(this.counters[counter].text) || 0;
+        
+        return new Promise((resolve) => {
+            this.scene.tweens.addCounter({
+                from: currentValue,
+                to: value,
+                duration: duration,
+                ease: 'Power1',
+                onComplete: () => {
+                    resolve();
+                },
+                onUpdate: (tween) => {
+                    const value = Math.floor(tween.getValue());
+                    this.updateCounter(counter, value);
+                }
+            });
+        });
     }
 }

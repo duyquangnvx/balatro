@@ -219,19 +219,6 @@ export function getCardValue(card: PlayingCard): number {
 }
 
 /**
- * Get the point value of the card (used for scoring)
- */
-export function getCardPointValue(card: PlayingCard): number {
-    switch (card.getRank()) {
-        case Rank.ACE: return 11;
-        case Rank.KING: return 10;
-        case Rank.QUEEN: return 10;
-        case Rank.JACK: return 10;
-        default: return parseInt(card.getRank()) || 0;
-    }
-}
-
-/**
  * Get the highest card in the hand
  */
 export function getHighestCard(cards: PlayingCard[]): PlayingCard {

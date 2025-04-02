@@ -130,11 +130,12 @@ export class HandArea extends CardArea<PlayingCardDisplay> {
     }
 
     public clearSelection(): void {
+        if (this.selectedCards.length === 0) {
+            return;
+        }
+
         this.selectedCards.forEach(cardDisplay => cardDisplay.lowerDown());
         this.selectedCards.length = 0;
-        
-        // Emit event when all selected cards are cleared
-        this.emit('card-selected-changed', this.selectedCards);
     }
 
     /**

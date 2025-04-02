@@ -2,10 +2,19 @@ import { PokerHandType } from "../utils/poker-utils";
 import { LocalStorage } from "../utils/local-storage";
 import { GAME_CONFIG, BlindType, BlindConfig, AnteConfig } from "../config/game-config";
 import { calculatePokerHandScore } from "../utils/scoring";
+import { PlayingCard } from "../objects/playing-card";
 
 export type PokerHandState = {
     handType: PokerHandType;
     level: number;
+    chips: number;
+    multiplier: number;
+}
+
+export type PlayedHistory = {
+    handType: PokerHandType;
+    cards: PlayingCard[];
+    score: number;
     chips: number;
     multiplier: number;
 }
@@ -232,28 +241,6 @@ export class RunManager {
         
         currentBlind.skipped = true;
         return this.advanceToNextBlind();
-    }
-    
-    /**
-     * Check if the score has passed the current Blind
-     * @param score Score achieved
-     * @returns true if enough score to pass Blind, false if not enough
-     */
-    public checkBlindCompleted(score: number): boolean {
-        const currentBlind = this.getCurrentBlind();
-        if (!currentBlind) return false;
-        
-        if (score >= currentBlind.requiredScore) {
-            currentBlind.completed = true;
-            
-            // Add reward (simple value for demo purposes)
-            const reward = Math.floor(currentBlind.requiredScore * 0.2);
-            this.updateMoney(reward);
-            
-            return true;
-        }
-        
-        return false;
     }
     
     /**

@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-Always use createThemedButton, createThemedText, button.ts, rounded-container.ts if needed
+Always use createThemedButton, createThemedText, [game-utils.ts](mdc:src/utils/game-utils.ts), [Button.ts](mdc:src/ui/Button.ts), [rounded-container.ts](mdc:src/ui/rounded-container.ts) if needed

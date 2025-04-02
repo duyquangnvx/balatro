@@ -1,7 +1,6 @@
 import { Scene } from "phaser";
 import { PlayingCard } from "../objects/playing-card";
 import { PlayingCardDisplay } from "../components/playing-card-display";
-import { getCardPointValue } from "./poker-utils";
 import { THEME_CONFIG } from "../config/theme-config";
 import { createThemedText, wait } from "./game-utils";
 

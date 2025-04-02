@@ -9,6 +9,7 @@ import { GAME_CONFIG } from './config/game-config';
 import { GameLoop } from './utils/game-loop';
 import RexUIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 import DropShadowPipelinePlugin from 'phaser3-rex-plugins/plugins/dropshadowpipeline-plugin.js';
+import { GameOverScene } from './scenes/game-over-scene';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: GAME_CONFIG.SCREEN_WIDTH,
     height: GAME_CONFIG.SCREEN_HEIGHT,
     parent: 'game-container',
-    scene: [BootScene, TransitionFade, PreloadScene, LoadingScene, GameScene, TestScene],
+    scene: [BootScene, TransitionFade, PreloadScene, LoadingScene, GameScene, TestScene, GameOverScene],
     physics: {
         default: 'arcade',
         arcade: {

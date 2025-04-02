@@ -3,8 +3,8 @@ import { GAME_CONFIG } from "../config/game-config";
 import { RunManager } from "./run-manager";
 import { BoardManager } from "./board-manager";
 import { PlayingCard } from "../objects/playing-card";
-import { calculateScore } from "../utils/scoring";
-import { evaluatePokerHand } from "../utils/poker-utils";
+import { calculateScore, ScoreResult } from "../utils/scoring";
+import { evaluatePokerHand, PokerHandType } from "../utils/poker-utils";
 
 /**
  * Game state enum
@@ -16,6 +16,14 @@ export enum GameState {
     BLIND_SELECTION = 'BLIND_SELECTION',
     GAME_OVER = 'GAME_OVER',
     PAUSED = 'PAUSED'
+}
+
+export type PlayResult = {
+    handType: PokerHandType;
+    playedCards: PlayingCard[];
+    pokerCards: PlayingCard[];
+    newCards: PlayingCard[];
+    scoreResult: ScoreResult;
 }
 
 export class GameManager {
@@ -65,20 +73,27 @@ export class GameManager {
         this.runManager.advanceToNextBlind();
     }
 
-    public playCards(cards: PlayingCard[]): PlayingCard[] {
+    public playCards(cards: PlayingCard[]): PlayResult {
         if (this.runManager.getRemainingPlays() <= 0) {
             throw new Error("No more plays to play");
         }
 
         this.boardManager.playCards(cards);
 
-        const { handType } = evaluatePokerHand(cards);
-        const scoreResult = calculateScore(handType, this.runManager.getRunState());
+        const pokerHandEvaluation = evaluatePokerHand(cards);
+        const scoreResult = calculateScore(pokerHandEvaluation, this.runManager.getRunState());
         this.runManager.addScore(scoreResult.totalScore);
         this.runManager.usePlay();
 
         const newCards = this.boardManager.dealCardsToHand(cards.length);
-        return newCards;
+ 
+        return {
+            newCards,
+            playedCards: cards,
+            pokerCards: pokerHandEvaluation.cards,
+            scoreResult,
+            handType: pokerHandEvaluation.handType
+        }
     }
 
     public discardCards(cards: PlayingCard[]): PlayingCard[] {
