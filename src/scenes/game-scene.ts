@@ -6,15 +6,12 @@ import { HandArea, SortType } from "../components/areas/hand-area";
 import { PlayArea } from "../components/areas/play-area";
 import { BaseScene } from "./base-scene";
 import { GameManager } from "../managers/game-manger";
-import { BoardManager } from "../managers/board-manager";
-import { ScoreManager } from "../managers/score-manager";
-import { RunManager } from "../managers/run-manager";
 import { wait } from "../utils/game-utils";
 import { PlayingCard } from "../objects/playing-card";
 import { ActionPanel } from "../ui/action-panel";
 import { BlindPanel } from '../ui/blind-panel';
 import { DiscardArea } from "../components/areas/discard-area";
-import { getCardPointValue, getPokerHandCards } from '../utils/poker-utils';
+import { evaluatePokerHand, getCardPointValue, getPokerHandName } from '../utils/poker-utils';
 import { animateScoreText } from '../utils/animation-utils';
 import { THEME_CONFIG } from "../config/theme-config";
 
@@ -104,7 +101,6 @@ export class GameScene extends BaseScene {
         this.setupBoard();
         this.setupBlindPanel();
 
-        // Initialize ScoreManager and RunManager for new game
         await this.startNewGame();
     }
 
@@ -139,6 +135,8 @@ export class GameScene extends BaseScene {
         
         // Link the action panel to the hand area
         this.actionPanel.setHandArea(this.handDisplay);
+
+        this.handDisplay.on('card-selected-changed', this.onCardSelectedChanged, this);
     }
     
     /**
@@ -149,53 +147,14 @@ export class GameScene extends BaseScene {
         this.blindPanel = new BlindPanel(this, SCENE_CONFIG.BLIND_PANEL);
         
         // Update the panel with current blind information
-        this.updateBlindInfo();
-        
-        // Initialize score manager and money
-        const scoreManager = this.gameManager.getScoreManager();
-        this.blindPanel.updateMoney(scoreManager.getMoney());
-        
-        // Set initial hands and discards
-        const runManager = this.gameManager.getRunManager();
-        this.blindPanel.updateHandsAndDiscards(
-            runManager.getRemainingPlays(),
-            runManager.getRemainingDiscards()
-        );
-    }
-
-    /**
-     * Update current Blind information
-     */
-    private updateBlindInfo(): void {
-        const runManager = this.gameManager.getRunManager();
-        const currentAnte = runManager.getCurrentAnte();
-        const currentBlind = runManager.getCurrentBlind();
-        
-        if (!currentAnte || !currentBlind) {
-            return;
-        }
-        
-        // Update Blind panel with current blind information
-        this.blindPanel.updateBlind(
-            currentBlind.config.name,
-            Math.floor(currentAnte.config.baseChips * currentBlind.config.baseMultiplier)
-        );
-        
-        // Update Ante and round information
-        this.blindPanel.updateAnteAndRound(
-            runManager.getCurrentAnteIndex() + 1,
-            runManager.getTotalAntes(),
-            runManager.getCurrentRound()
-        );
-        
-        // Update score if available
-        const scoreManager = this.gameManager.getScoreManager();
-        this.blindPanel.updateScore(scoreManager.getRoundScore());
+        this.updateBlindPanel();
     }
 
     async startNewGame(): Promise<void> {
         this.gameManager.startNewGame();
         this.gameManager.startNewRound();
+
+        this.updateBlindPanel();
 
         // Update displays
         const boardManager = this.gameManager.getBoardManager();
@@ -218,6 +177,12 @@ export class GameScene extends BaseScene {
         const newCards = this.gameManager.playCards(selectedCards);
 
         this.handDisplay.clearSelection();
+
+        const runManager = this.gameManager.getRunManager();
+        this.blindPanel.updateHandsAndDiscards(
+            runManager.getRemainingPlays(),
+            runManager.getRemainingDiscards()
+        );
 
         // Deal new cards to replace the ones played
         await this.animatePlayCards(selectedCards);
@@ -243,9 +208,19 @@ export class GameScene extends BaseScene {
 
         this.handDisplay.clearSelection();
 
+        const runManager = this.gameManager.getRunManager();
+        this.blindPanel.updateHandsAndDiscards(
+            runManager.getRemainingPlays(),
+            runManager.getRemainingDiscards()
+        );
+
         await this.animateDiscardCards(selectedCards);
         await wait(200);
         await this.animateDealCards(newCards);
+    }
+
+    private onCardSelectedChanged(): void {
+        this.updateBlindPanel();
     }
 
     /**
@@ -301,8 +276,8 @@ export class GameScene extends BaseScene {
         await wait(400);
         
         // Identify the best poker hand
-        const pokerHandCards = getPokerHandCards(cards);
-        const pokerHandCardDisplays = pokerHandCards.map(card => this.playDisplay.findCardDisplay(card));
+        const pokerHand = evaluatePokerHand(cards);
+        const pokerHandCardDisplays = pokerHand.cards.map(card => this.playDisplay.findCardDisplay(card));
         
         // Sắp xếp card displays từ trái sang phải (theo giá trị x)
         pokerHandCardDisplays.sort((a, b) => {
@@ -370,4 +345,31 @@ export class GameScene extends BaseScene {
             }
         }
     }  
+
+    private updateBlindPanel(): void {
+        const runManager = this.gameManager.getRunManager();
+
+        const selectedCards = this.handDisplay.getSelectedCards();
+        if (selectedCards.length > 0) {
+            const pokerHand = evaluatePokerHand(selectedCards);
+            const pokerHandState = runManager.getPokerHandState(pokerHand.handType);
+            this.blindPanel.updatePokerHand(pokerHandState);
+        }
+        else {
+            this.blindPanel.updatePokerHand();
+        }
+
+        this.blindPanel.updateAnteAndRound(
+            runManager.getCurrentAnteIndex() + 1,
+            runManager.getTotalAntes(),
+            runManager.getCurrentRound()
+        );
+        
+        this.blindPanel.updateHandsAndDiscards(
+            runManager.getRemainingPlays(),
+            runManager.getRemainingDiscards()
+        );
+
+        this.blindPanel.updateMoney(runManager.getMoney());
+    }
 }   

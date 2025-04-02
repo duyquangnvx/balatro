@@ -3,7 +3,8 @@ import { THEME_CONFIG } from '../config/theme-config';
 import { Button } from './button';
 import { createThemedText } from '../utils/game-utils';
 import { RoundedContainer } from './rounded-container';
-
+import { BlindState, PokerHandState } from '../managers/run-manager';
+import { getPokerHandName } from '../utils/poker-utils';
 // Định nghĩa enum BlindType
 export enum BlindType {
     SMALL_BLIND = 'small_blind',
@@ -648,30 +649,47 @@ export class BlindPanel extends Phaser.GameObjects.Container {
         return container;
     }
 
-    /**
-     * Cập nhật thông tin về blind hiện tại
-     */
-    public updateBlind(name: string, chips: number): void {
-        // Cập nhật tiêu đề và icon blind
-        this.titleText.setText(name);
-        
-        // Cập nhật target score
-        this.targetScoreText.setText(chips.toString());
-        
-        // Căn giữa lại các phần tử sau khi cập nhật target score
-        this.centerTargetScoreElements();
-    }
-
-    /**
-     * Cập nhật thông tin về điểm
-     */
-    public updateScore(score: number): void {
+    public updateRoundScore(score: number): void {
         // Cập nhật điểm hiện tại
         this.currentScoreText.setText(score.toString());
-        
+
         // Căn giữa lại các phần tử sau khi cập nhật text
         this.centerScoreElements();
     }
+
+    /**
+     * Cập nhật thông tin về blind hiện tại
+     */
+    public updateBlind(blind?: BlindState): void {
+        if (!blind) {
+            this.titleText.setText('');
+            this.targetScoreText.setText('');
+            return;
+        }
+
+        this.titleText.setText(blind.config.name);
+        
+        this.targetScoreText.setText(blind.requiredScore.toString());
+        this.moneyValueText.setText(`$${blind.config.reward}`);
+        
+        // todo: update icon
+
+        this.centerTargetScoreElements();
+    }
+
+    public updatePokerHand(pokerHand?: PokerHandState): void {
+        if (pokerHand) {
+            const handName = getPokerHandName(pokerHand.handType);
+            this.pokerHandText.setText(`${handName} lvl.${pokerHand.level}`);
+            this.chipsValueText.setText(pokerHand.chips.toString());
+            this.multiplierText.setText(pokerHand.multiplier.toString());
+        } else {
+            this.pokerHandText.setText('');
+            this.chipsValueText.setText('0');
+            this.multiplierText.setText('0');
+        }
+    }
+
 
     /**
      * Cập nhật thông tin ante và round

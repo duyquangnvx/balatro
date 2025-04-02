@@ -27,6 +27,7 @@ export enum PokerHandType {
 export interface PokerHandEvaluationResult {
     handType: PokerHandType;
     description: string;
+    cards: PlayingCard[];      // Các lá bài tạo nên poker hand
 }
 
 /**
@@ -222,11 +223,10 @@ export function getCardValue(card: PlayingCard): number {
  */
 export function getCardPointValue(card: PlayingCard): number {
     switch (card.getRank()) {
-        case Rank.ACE: return 14;
-        case Rank.KING: return 13;
-        case Rank.QUEEN: return 12;
-        case Rank.JACK: return 11;
-        case Rank.TEN: return 10;
+        case Rank.ACE: return 11;
+        case Rank.KING: return 10;
+        case Rank.QUEEN: return 10;
+        case Rank.JACK: return 10;
         default: return parseInt(card.getRank()) || 0;
     }
 }
@@ -245,41 +245,118 @@ export function getHighestCard(cards: PlayingCard[]): PlayingCard {
 }
 
 /**
- * Get the cards that form the best poker hand
+ * Evaluate a poker hand and return the highest possible combination
  * @param cards The cards to evaluate
- * @returns The cards that form the best poker hand
+ * @returns The evaluation result containing hand type, description and relevant cards
  */
-export function getPokerHandCards(cards: PlayingCard[]): PlayingCard[] {
-    if (cards.length <= 1) {
-        return [...cards];
+export function evaluatePokerHand(cards: PlayingCard[]): PokerHandEvaluationResult {
+    if (cards.length < 1) {
+        return {
+            handType: PokerHandType.HIGH_CARD,
+            description: "No cards played",
+            cards: []
+        };
     }
     
     // Clone array to avoid affecting the original cards
     const handCards = [...cards];
     
-    // Special hands (all cards involved)
-    if (isFlushFive(handCards) || 
-        isFiveOfAKind(handCards) || 
-        isFlushHouse(handCards) || 
-        isRoyalFlush(handCards) || 
-        isStraightFlush(handCards) || 
-        isFlush(handCards) || 
-        isStraight(handCards)) {
-        return handCards.slice(0, 5);
+    // Check secret hands (highest priority)
+    // Flush Five
+    if (isFlushFive(handCards)) {
+        const selectedCards = handCards.slice(0, 5);
+        return {
+            handType: PokerHandType.FLUSH_FIVE,
+            description: "Flush Five: 5 lá cùng giá trị và cùng chất",
+            cards: selectedCards
+        };
     }
     
-    // Four of a Kind (4 cards with same rank)
+    // Five of a Kind
+    if (isFiveOfAKind(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const fiveOfAKindRank = Object.entries(rankCounts)
+            .find(([_, count]) => count >= 5)?.[0] as Rank;
+            
+        if (fiveOfAKindRank) {
+            const selectedCards = handCards
+                .filter(card => card.getRank() === fiveOfAKindRank)
+                .slice(0, 5);
+                
+            return {
+                handType: PokerHandType.FIVE_OF_A_KIND,
+                description: "Five of a Kind: 5 lá cùng giá trị",
+                cards: selectedCards
+            };
+        }
+    }
+    
+    // Flush House
+    if (isFlushHouse(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const threeOfAKindRank = Object.entries(rankCounts)
+            .find(([_, count]) => count >= 3)?.[0] as Rank;
+        const pairRank = Object.entries(rankCounts)
+            .find(([rank, count]) => count >= 2 && rank !== threeOfAKindRank)?.[0] as Rank;
+            
+        if (threeOfAKindRank && pairRank) {
+            const threeCards = handCards
+                .filter(card => card.getRank() === threeOfAKindRank)
+                .slice(0, 3);
+            const pairCards = handCards
+                .filter(card => card.getRank() === pairRank)
+                .slice(0, 2);
+                
+            return {
+                handType: PokerHandType.FLUSH_HOUSE,
+                description: "Flush House: Full House với tất cả lá cùng chất",
+                cards: [...threeCards, ...pairCards]
+            };
+        }
+    }
+
+    // Check regular hands
+    // Royal Flush
+    if (isRoyalFlush(handCards)) {
+        const selectedCards = handCards.slice(0, 5);
+        return {
+            handType: PokerHandType.ROYAL_FLUSH,
+            description: "Royal Flush: 10, J, Q, K, A cùng chất",
+            cards: selectedCards
+        };
+    }
+
+    // Straight Flush
+    if (isStraightFlush(handCards)) {
+        const selectedCards = handCards.slice(0, 5);
+        const highCard = getHighestCard(selectedCards);
+        return {
+            handType: PokerHandType.STRAIGHT_FLUSH,
+            description: "Straight Flush: 5 lá liên tiếp cùng chất",
+            cards: selectedCards
+        };
+    }
+
+    // Four of a Kind
     if (isFourOfAKind(handCards)) {
         const rankCounts = countCardRanks(handCards);
         const fourOfAKindRank = Object.entries(rankCounts)
             .find(([_, count]) => count >= 4)?.[0] as Rank;
             
         if (fourOfAKindRank) {
-            return handCards.filter(card => card.getRank() === fourOfAKindRank).slice(0, 4);
+            const selectedCards = handCards
+                .filter(card => card.getRank() === fourOfAKindRank)
+                .slice(0, 4);
+                
+            return {
+                handType: PokerHandType.FOUR_OF_A_KIND,
+                description: "Four of a Kind: 4 lá cùng giá trị",
+                cards: selectedCards
+            };
         }
     }
-    
-    // Full House (3 cards with same rank + 2 with same rank)
+
+    // Full House
     if (isFullHouse(handCards)) {
         const rankCounts = countCardRanks(handCards);
         const threeOfAKindRank = Object.entries(rankCounts)
@@ -288,168 +365,142 @@ export function getPokerHandCards(cards: PlayingCard[]): PlayingCard[] {
             .find(([rank, count]) => count >= 2 && rank !== threeOfAKindRank)?.[0] as Rank;
             
         if (threeOfAKindRank && pairRank) {
-            const threeCards = handCards.filter(card => card.getRank() === threeOfAKindRank).slice(0, 3);
-            const pairCards = handCards.filter(card => card.getRank() === pairRank).slice(0, 2);
-            return [...threeCards, ...pairCards];
+            const threeCards = handCards
+                .filter(card => card.getRank() === threeOfAKindRank)
+                .slice(0, 3);
+            const pairCards = handCards
+                .filter(card => card.getRank() === pairRank)
+                .slice(0, 2);
+                
+            return {
+                handType: PokerHandType.FULL_HOUSE,
+                description: "Full House: 3 lá cùng giá trị + 2 lá cùng giá trị khác",
+                cards: [...threeCards, ...pairCards]
+            };
         }
     }
-    
-    // Three of a Kind (3 cards with same rank)
+
+    // Flush
+    if (isFlush(handCards)) {
+        const selectedCards = handCards.slice(0, 5);
+        const highCard = getHighestCard(selectedCards);
+        return {
+            handType: PokerHandType.FLUSH,
+            description: "Flush: 5 lá cùng chất",
+            cards: selectedCards
+        };
+    }
+
+    // Straight
+    if (isStraight(handCards)) {
+        const selectedCards = handCards.slice(0, 5);
+        const highCard = getHighestCard(selectedCards);
+        return {
+            handType: PokerHandType.STRAIGHT,
+            description: "Straight: 5 lá liên tiếp",
+            cards: selectedCards
+        };
+    }
+
+    // Three of a Kind
     if (isThreeOfAKind(handCards)) {
         const rankCounts = countCardRanks(handCards);
         const threeOfAKindRank = Object.entries(rankCounts)
             .find(([_, count]) => count >= 3)?.[0] as Rank;
             
         if (threeOfAKindRank) {
-            return handCards.filter(card => card.getRank() === threeOfAKindRank).slice(0, 3);
+            const selectedCards = handCards
+                .filter(card => card.getRank() === threeOfAKindRank)
+                .slice(0, 3);
+                
+            return {
+                handType: PokerHandType.THREE_OF_A_KIND,
+                description: "Three of a Kind: 3 lá cùng giá trị",
+                cards: selectedCards
+            };
         }
     }
-    
-    // Two Pair (2 sets of pairs)
+
+    // Two Pair
     if (isTwoPair(handCards)) {
         const rankCounts = countCardRanks(handCards);
         const pairRanks = Object.entries(rankCounts)
             .filter(([_, count]) => count >= 2)
+            .sort(([rank1, _], [rank2, __]) => {
+                // Sắp xếp theo giá trị giảm dần
+                const value1 = getCardValue({getRank: () => rank1 as Rank} as PlayingCard);
+                const value2 = getCardValue({getRank: () => rank2 as Rank} as PlayingCard);
+                return value2 - value1;
+            })
             .map(([rank, _]) => rank as Rank)
             .slice(0, 2);
             
         if (pairRanks.length >= 2) {
-            const firstPairCards = handCards.filter(card => card.getRank() === pairRanks[0]).slice(0, 2);
-            const secondPairCards = handCards.filter(card => card.getRank() === pairRanks[1]).slice(0, 2);
-            return [...firstPairCards, ...secondPairCards];
+            const firstPairCards = handCards
+                .filter(card => card.getRank() === pairRanks[0])
+                .slice(0, 2);
+            const secondPairCards = handCards
+                .filter(card => card.getRank() === pairRanks[1])
+                .slice(0, 2);
+                
+            return {
+                handType: PokerHandType.TWO_PAIR,
+                description: "Two Pair: 2 cặp khác nhau",
+                cards: [...firstPairCards, ...secondPairCards]
+            };
         }
-    }
-    
-    // Pair (2 cards with same rank)
-    if (isPair(handCards)) {
-        const rankCounts = countCardRanks(handCards);
-        const pairRank = Object.entries(rankCounts)
-            .find(([_, count]) => count >= 2)?.[0] as Rank;
-            
-        if (pairRank) {
-            return handCards.filter(card => card.getRank() === pairRank).slice(0, 2);
-        }
-    }
-    
-    // High Card (just the highest card)
-    return [getHighestCard(handCards)];
-}
-
-/**
- * Evaluate a poker hand and return the highest possible combination
- * @param cards The cards to evaluate
- * @returns The evaluation result containing hand type and description
- */
-export function evaluatePokerHand(cards: PlayingCard[]): PokerHandEvaluationResult {
-    if (cards.length < 1) {
-        return {
-            handType: PokerHandType.HIGH_CARD,
-            description: "No cards played"
-        };
-    }
-    
-    // Check secret hands (highest priority)
-    // Flush Five
-    if (isFlushFive(cards)) {
-        return {
-            handType: PokerHandType.FLUSH_FIVE,
-            description: "Flush Five: 5 lá cùng giá trị và cùng chất"
-        };
-    }
-    
-    // Five of a Kind
-    if (isFiveOfAKind(cards)) {
-        return {
-            handType: PokerHandType.FIVE_OF_A_KIND,
-            description: "Five of a Kind: 5 lá cùng giá trị"
-        };
-    }
-    
-    // Flush House
-    if (isFlushHouse(cards)) {
-        return {
-            handType: PokerHandType.FLUSH_HOUSE,
-            description: "Flush House: Full House với tất cả lá cùng chất"
-        };
-    }
-
-    // Check regular hands
-    // Royal Flush
-    if (isRoyalFlush(cards)) {
-        return {
-            handType: PokerHandType.ROYAL_FLUSH,
-            description: "Royal Flush: 10, J, Q, K, A cùng chất"
-        };
-    }
-
-    // Straight Flush
-    if (isStraightFlush(cards)) {
-        return {
-            handType: PokerHandType.STRAIGHT_FLUSH,
-            description: "Straight Flush: 5 lá liên tiếp cùng chất"
-        };
-    }
-
-    // Four of a Kind
-    if (isFourOfAKind(cards)) {
-        return {
-            handType: PokerHandType.FOUR_OF_A_KIND,
-            description: "Four of a Kind: 4 lá cùng giá trị"
-        };
-    }
-
-    // Full House
-    if (isFullHouse(cards)) {
-        return {
-            handType: PokerHandType.FULL_HOUSE,
-            description: "Full House: 3 lá cùng giá trị + 2 lá cùng giá trị khác"
-        };
-    }
-
-    // Flush
-    if (isFlush(cards)) {
-        return {
-            handType: PokerHandType.FLUSH,
-            description: "Flush: 5 lá cùng chất"
-        };
-    }
-
-    // Straight
-    if (isStraight(cards)) {
-        return {
-            handType: PokerHandType.STRAIGHT,
-            description: "Straight: 5 lá liên tiếp"
-        };
-    }
-
-    // Three of a Kind
-    if (isThreeOfAKind(cards)) {
-        return {
-            handType: PokerHandType.THREE_OF_A_KIND,
-            description: "Three of a Kind: 3 lá cùng giá trị"
-        };
-    }
-
-    // Two Pair
-    if (isTwoPair(cards)) {
-        return {
-            handType: PokerHandType.TWO_PAIR,
-            description: "Two Pair: 2 cặp khác nhau"
-        };
     }
 
     // Pair
-    if (isPair(cards)) {
-        return {
-            handType: PokerHandType.PAIR,
-            description: "Pair: 2 lá cùng giá trị"
-        };
+    if (isPair(handCards)) {
+        const rankCounts = countCardRanks(handCards);
+        const pairRanks = Object.entries(rankCounts)
+            .filter(([_, count]) => count >= 2)
+            .sort(([rank1, _], [rank2, __]) => {
+                // Sắp xếp theo giá trị giảm dần
+                const value1 = getCardValue({getRank: () => rank1 as Rank} as PlayingCard);
+                const value2 = getCardValue({getRank: () => rank2 as Rank} as PlayingCard);
+                return value2 - value1;
+            })
+            .map(([rank, _]) => rank as Rank);
+            
+        if (pairRanks.length > 0) {
+            const selectedCards = handCards
+                .filter(card => card.getRank() === pairRanks[0])
+                .slice(0, 2);
+                
+            return {
+                handType: PokerHandType.PAIR,
+                description: "Pair: 2 lá cùng giá trị",
+                cards: selectedCards
+            };
+        }
     }
 
     // If no combination, return High Card
-    const highestCard = getHighestCard(cards);
+    const highestCard = getHighestCard(handCards);
     return {
         handType: PokerHandType.HIGH_CARD,
-        description: `High Card: Lá cao nhất là ${highestCard.getRank()}`
+        description: `High Card: Lá cao nhất là ${highestCard.getRank()}`,
+        cards: [highestCard]
     };
 } 
+
+export function getPokerHandName(handType: PokerHandType): string {
+    switch (handType) {
+        case PokerHandType.HIGH_CARD: return "High Card";
+        case PokerHandType.PAIR: return "Pair";
+        case PokerHandType.TWO_PAIR: return "Two Pair";
+        case PokerHandType.THREE_OF_A_KIND: return "Three of a Kind";
+        case PokerHandType.STRAIGHT: return "Straight";
+        case PokerHandType.FLUSH: return "Flush";
+        case PokerHandType.FULL_HOUSE: return "Full House";
+        case PokerHandType.FOUR_OF_A_KIND: return "Four of a Kind";
+        case PokerHandType.STRAIGHT_FLUSH: return "Straight Flush";
+        case PokerHandType.ROYAL_FLUSH: return "Royal Flush";
+        case PokerHandType.FIVE_OF_A_KIND: return "Five of a Kind";
+        case PokerHandType.FLUSH_HOUSE: return "Flush House";
+        case PokerHandType.FLUSH_FIVE: return "Flush Five";
+        default: return "Unknown";
+    }
+}

@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Always use createThemedButton, createThemedText, button.ts, rounded-container.ts if needed

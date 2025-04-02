@@ -2,8 +2,9 @@ import { Scene } from "phaser";
 import { GAME_CONFIG } from "../config/game-config";
 import { RunManager } from "./run-manager";
 import { BoardManager } from "./board-manager";
-import { ScoreManager } from "./score-manager";
 import { PlayingCard } from "../objects/playing-card";
+import { calculateScore } from "../utils/scoring";
+import { evaluatePokerHand } from "../utils/poker-utils";
 
 /**
  * Game state enum
@@ -24,12 +25,10 @@ export class GameManager {
 
     private boardManager: BoardManager;
     private runManager: RunManager;
-    private scoreManager: ScoreManager;
 
     private constructor() {
         this.boardManager = new BoardManager();
         this.runManager = RunManager.getInstance();
-        this.scoreManager = ScoreManager.getInstance();
     }
 
     public static getInstance(): GameManager {
@@ -51,16 +50,11 @@ export class GameManager {
         return this.runManager;
     }
 
-    public getScoreManager(): ScoreManager {
-        return this.scoreManager;
-    }
-
     public startNewGame(): void {
         this.runManager.startNewRun();
     }
 
     public startNewRound(): void {
-        this.scoreManager.startNewRound();
         this.boardManager.startNewRound();
         
         const handSize = this.runManager.getHandSize();
@@ -78,8 +72,9 @@ export class GameManager {
 
         this.boardManager.playCards(cards);
 
-        const scoreResult = this.scoreManager.calculateScore(cards);
-        this.runManager.addScore(scoreResult.score);
+        const { handType } = evaluatePokerHand(cards);
+        const scoreResult = calculateScore(handType, this.runManager.getRunState());
+        this.runManager.addScore(scoreResult.totalScore);
         this.runManager.usePlay();
 
         const newCards = this.boardManager.dealCardsToHand(cards.length);
