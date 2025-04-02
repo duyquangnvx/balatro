@@ -4,6 +4,9 @@ import { Button } from './button';
 import { createThemedText } from '../utils/game-utils';
 import { applyShadow } from '../utils/effect-utils';
 import { THEME_CONFIG } from '../config/theme-config';
+import { RunManager } from '../managers/run-manager';
+import { GameManager } from '../managers/game-manager';
+
 export interface ActionPanelConfig {
     x: number;
     y: number;
@@ -34,9 +37,12 @@ export class ActionPanel extends Phaser.GameObjects.Container {
     private readonly sortButtonSpacing = 20;
 
     private handArea?: HandArea;
+    private runManager: RunManager;
 
     constructor(scene: Scene, config: ActionPanelConfig) {
         super(scene, config.x, config.y);
+
+        this.runManager = GameManager.getInstance().getRunManager();
         
         const totalWidth = this.buttonWidth * 3 + this.buttonSpacing * 2;
         const startX = -totalWidth / 2 + this.buttonWidth / 2;
@@ -153,38 +159,33 @@ export class ActionPanel extends Phaser.GameObjects.Container {
     }
     
     public setHandArea(handArea: HandArea): void {
-        // If there is a handArea, remove the old listener
         if (this.handArea) {
             this.handArea.off('card-selected-changed', this.updateButtonStates, this);
         }
-        
+
         this.handArea = handArea;
-        
-        // Register for the card-selected-changed event
+
         this.handArea.on('card-selected-changed', this.updateButtonStates, this);
-        
-        // Update initial state
-        this.updateButtonStates();
     }
-    
-    /**
-     * Update button states based on whether there are selected cards
-     * @param selectedCards List of selected cards, if not provided, get from handArea
-     */
-    public updateButtonStates(selectedCards?: any[]): void {
+
+    private updateButtonStates(): void {
         if (!this.handArea) {
             return;
         }
-        
-        // If no selectedCards are provided, get from handArea
-        const hasSelectedCards = selectedCards ? selectedCards.length > 0 
-                                             : this.handArea.getSelectedCards().length > 0;
-        
-        // Update Play Hand button
-        this.playHandButton.setBackgroundColor(hasSelectedCards ? this.activePlayHandColor : this.inactiveButtonColor);
-        
-        // Update Discard button
-        this.discardButton.setBackgroundColor(hasSelectedCards ? this.activeDiscardColor : this.inactiveButtonColor);
+
+        const hasSelectedCards = this.handArea.getSelectedCards().length > 0;
+        this.setPlayHandButtonEnabled(hasSelectedCards && this.runManager.getRemainingPlays() > 0);
+        this.setDiscardButtonEnabled(hasSelectedCards && this.runManager.getRemainingDiscards() > 0);
+    }
+
+    setPlayHandButtonEnabled(enabled: boolean): void {
+        this.playHandButton.setInteractive(enabled);
+        this.playHandButton.setBackgroundColor(enabled ? this.activePlayHandColor : this.inactiveButtonColor);
+    }
+
+    setDiscardButtonEnabled(enabled: boolean): void {
+        this.playHandButton.setInteractive(enabled);
+        this.discardButton.setBackgroundColor(enabled ? this.activeDiscardColor : this.inactiveButtonColor);
     }
 } 
 

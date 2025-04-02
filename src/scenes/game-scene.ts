@@ -5,7 +5,7 @@ import { DeckArea } from "../components/areas/deck-area";
 import { HandArea, SortType } from "../components/areas/hand-area";
 import { PlayArea } from "../components/areas/play-area";
 import { BaseScene } from "./base-scene";
-import { GameManager } from "../managers/game-manger";
+import { GameManager } from "../managers/game-manager";
 import { wait } from "../utils/game-utils";
 import { PlayingCard } from "../objects/playing-card";
 import { ActionPanel } from "../ui/action-panel";
@@ -166,6 +166,11 @@ export class GameScene extends BaseScene {
      * Handle play hand action
      */
     private async onPlayHand(): Promise<void> {
+        const runManager = this.gameManager.getRunManager();
+        if (runManager.getRemainingPlays() === 0) {
+            return;
+        }
+
         // Get selected cards
         const selectedCards = this.handDisplay.getSelectedCards();
         
@@ -178,7 +183,6 @@ export class GameScene extends BaseScene {
 
         this.handDisplay.clearSelection();
 
-        const runManager = this.gameManager.getRunManager();
         this.blindPanel.updateHandsAndDiscards(
             runManager.getRemainingPlays(),
             runManager.getRemainingDiscards()
@@ -195,6 +199,11 @@ export class GameScene extends BaseScene {
      * Handle discard action
      */
     private async onDiscard(): Promise<void> {
+        const runManager = this.gameManager.getRunManager();
+        if (runManager.getRemainingDiscards() === 0) {
+            return;
+        }
+
         // Get selected cards
         const selectedCards = this.handDisplay.getSelectedCards();
 
@@ -208,7 +217,6 @@ export class GameScene extends BaseScene {
 
         this.handDisplay.clearSelection();
 
-        const runManager = this.gameManager.getRunManager();
         this.blindPanel.updateHandsAndDiscards(
             runManager.getRemainingPlays(),
             runManager.getRemainingDiscards()

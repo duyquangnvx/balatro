@@ -1,7 +1,7 @@
 import { Logger } from '../utils/logger';
 import { BaseScene } from './base-scene';
 import { TransitionFade } from './transitions/transition-scene';
-import { GameManager } from '../managers/game-manger';
+import { GameManager } from '../managers/game-manager';
 import { RunManager } from '../managers/run-manager';
 
 // BootScene - Manages the boot process
