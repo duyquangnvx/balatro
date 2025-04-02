@@ -33,7 +33,7 @@ const SCENE_CONFIG = {
         depth: 0
     },
     HAND: {
-        x: GAME_CONFIG.SCREEN_WIDTH / 2,
+        x: GAME_CONFIG.SCREEN_WIDTH / 2 + 80,
         y: GAME_CONFIG.SCREEN_HEIGHT - 220,
         width: 600,
         height: 200,
@@ -48,20 +48,20 @@ const SCENE_CONFIG = {
         depth: 100
     },
     PLAY: {
-        x: GAME_CONFIG.SCREEN_WIDTH / 2,
+        x: GAME_CONFIG.SCREEN_WIDTH / 2 + 80,
         y: GAME_CONFIG.SCREEN_HEIGHT / 2 - 100,
         width: 700,
         height: 200,
         depth: 150
     },
     ACTION_PANEL: {
-        x: GAME_CONFIG.SCREEN_WIDTH / 2,
+        x: GAME_CONFIG.SCREEN_WIDTH / 2 + 80,
         y: GAME_CONFIG.SCREEN_HEIGHT - 60,
         width: 600,
         height: 80
     },
     BLIND_PANEL: {
-        x: 200,
+        x: 180,
         y: GAME_CONFIG.SCREEN_HEIGHT / 2,
         width: 300,
         height: GAME_CONFIG.SCREEN_HEIGHT
@@ -177,7 +177,6 @@ export class GameScene extends BaseScene {
         
         // Update Blind panel with current blind information
         this.blindPanel.updateBlind(
-            currentBlind.config.type,
             currentBlind.config.name,
             Math.floor(currentAnte.config.baseChips * currentBlind.config.baseMultiplier)
         );

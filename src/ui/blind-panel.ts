@@ -1,554 +1,711 @@
-import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 import { Scene } from 'phaser';
-import { BlindType } from '../config/game-config';
-import { createBBCodeText, createLabel } from '../utils/game-utils';
+import { THEME_CONFIG } from '../config/theme-config';
+import { Button } from './button';
+import { createThemedText } from '../utils/game-utils';
+import { RoundedContainer } from './rounded-container';
+
+// Định nghĩa enum BlindType
+export enum BlindType {
+    SMALL_BLIND = 'small_blind',
+    BIG_BLIND = 'big_blind',
+    DEALER = 'dealer',
+    ANTE = 'ante',
+    FLOP = 'flop',
+    TURN = 'turn',
+    RIVER = 'river'
+}
 
 export interface BlindPanelConfig {
     x: number;
     y: number;
-    width: number;
-    height: number;
-}
-
-interface BlindDisplayData {
-    name: string;
-    targetScore: number;
-    currentScore: number;
-    multiplierLeft: number;
-    multiplierRight: number;
-    hands: number;
-    discards: number;
-    money: number;
-    ante: number;
-    totalAntes: number;
-    round: number;
+    width?: number;
+    height?: number;
 }
 
 export class BlindPanel extends Phaser.GameObjects.Container {
-    private mainPanel: UIPlugin.Sizer;
-    private titleText: UIPlugin.BBCodeText;
-    private targetScoreText: UIPlugin.BBCodeText;
-    private currentScoreText: UIPlugin.BBCodeText;
-    private multiplierText: UIPlugin.BBCodeText;
-    private handsText: UIPlugin.BBCodeText;
-    private discardsText: UIPlugin.BBCodeText;
-    private moneyText: UIPlugin.BBCodeText;
-    private anteText: UIPlugin.BBCodeText;
-    private roundText: UIPlugin.BBCodeText;
+    private backgroundContainer: RoundedContainer;
+    private titleBar: RoundedContainer;
+    private scorePanel: RoundedContainer;
+    private roundScorePanel: RoundedContainer;
+    private pokerHandPanel: RoundedContainer;
+    private runInfoButton: Button;
+    private optionsButton: Button;
+    private moneyDisplay: RoundedContainer;
+    private handsDisplay: RoundedContainer;
+    private discardsDisplay: RoundedContainer;
+    private anteDisplay: RoundedContainer;
+    private roundDisplay: RoundedContainer;
+    private scoreDisplayContainer: RoundedContainer;
+    private chipIcon: Phaser.GameObjects.Image;
+    private targetScoreContainer: RoundedContainer;
+    private targetChipIcon: Phaser.GameObjects.Image;
+    private rewardContainer: Phaser.GameObjects.Container;
+    private rewardText: Phaser.GameObjects.BitmapText;
+    private moneyRewardText: Phaser.GameObjects.BitmapText;
 
-    private displayData: BlindDisplayData = {
-        name: 'Small Blind',
-        targetScore: 300,
-        currentScore: 0,
-        multiplierLeft: 0,
-        multiplierRight: 0,
-        hands: 4,
-        discards: 4,
-        money: 4,
-        ante: 1,
-        totalAntes: 8,
-        round: 1
-    };
+    // Lưu trữ text elements để dễ dàng truy cập và cập nhật
+    private titleText!: Phaser.GameObjects.BitmapText;
+    private targetScoreText!: Phaser.GameObjects.BitmapText;
+    private currentScoreText!: Phaser.GameObjects.BitmapText;
+    private pokerHandText!: Phaser.GameObjects.BitmapText;
+    private chipsValueText!: Phaser.GameObjects.BitmapText;
+    private multiplierText!: Phaser.GameObjects.BitmapText;
+    private handsValueText!: Phaser.GameObjects.BitmapText;
+    private discardsValueText!: Phaser.GameObjects.BitmapText;
+    private moneyValueText!: Phaser.GameObjects.BitmapText;
+    private anteValueText!: Phaser.GameObjects.BitmapText;
+    private roundValueText!: Phaser.GameObjects.BitmapText;
 
-    // Colors
-    private readonly darkBlueColor = 0x09435A;
-    private readonly lightBlueColor = 0x00619D;
-    private readonly darkGrayColor = 0x1D1F21;
-    private readonly redColor = '#FF4440';
-    private readonly orangeColor = '#FF8C00';
-    private readonly whiteTextColor = '#FFFFFF';
-    private readonly goldColor = '#FFD700';
-    private readonly lightBlueTextColor = '#0096FF';
+    // Cấu hình màu sắc
+    private readonly backgroundColor = 0x2B3234;
+    private readonly borderColor = 0x006AAC;
+    private readonly titleBarColor = 0x00619D;
+    private readonly scoreContainerColor = 0x0A3B55;
+    private readonly scoreDisplayColor = 0x1C2427;
+    private readonly textColor = 0xFFFFFF;
+    private readonly scoreColor = 0xE15245;
+    private readonly moneyColor = 0xED8D00;
+    private readonly blueButtonColor = 0x0098F8;
+    private readonly redButtonColor = 0xEC4D3C;
+    private readonly yellowButtonColor = 0xF2A516;
 
     constructor(scene: Scene, config: BlindPanelConfig) {
         super(scene, config.x, config.y);
-        
-        this.createMainPanel(config);
-        
-        scene.add.existing(this);
-    }
-    
-    private createMainPanel(config: BlindPanelConfig): void {
-        // Tạo main panel container trước
-        this.mainPanel = this.scene.rexUI.add.sizer({
-            orientation: 'vertical',
+
+        const width = config.width || 300;
+        const height = config.height || 600;
+
+        // Tạo container nền với viền
+        this.backgroundContainer = new RoundedContainer(scene, {
             x: 0,
             y: 0,
-            width: config.width,
-            height: config.height
-        })
-        .addBackground(
-            this.scene.add.rectangle(0, 0, 0, 0, this.darkGrayColor)
-                .setStrokeStyle(2, this.lightBlueColor)
+            width: width,
+            height: height,
+            backgroundColor: this.backgroundColor,
+            borderColor: this.borderColor,
+            borderWidth: 2,
+            radius: 2  // Viền chỉ có ở hai bên nên bo góc nhỏ
+        });
+        this.add(this.backgroundContainer);
+
+        // Tạo và thêm các phần tử UI
+        this.createComponents(width, height);
+
+        // Thêm vào scene
+        scene.add.existing(this);
+    }
+
+    private createComponents(width: number, height: number): void {
+        const panelPadding = 15;
+        const elementSpacing = 10;
+        const roundedRectRadius = 8;
+        
+        let yPosition = -height/2 + panelPadding;
+        
+        // 1. Title Bar - Tên của blind hiện tại
+        this.titleBar = this.createTitleBar(0, yPosition, width - 2 * panelPadding, 40);
+        this.add(this.titleBar);
+        
+        yPosition += 40 + elementSpacing;
+        
+        // 2. Score Panel - Thông tin về mục tiêu điểm
+        this.scorePanel = this.createScorePanel(0, yPosition, width - 2 * panelPadding, 140);
+        this.add(this.scorePanel);
+        
+        yPosition += 140 + elementSpacing;
+        
+        // 3. Round Score Panel - Hiển thị điểm hiện tại
+        this.roundScorePanel = this.createRoundScorePanel(0, yPosition, width - 2 * panelPadding, 50);
+        this.add(this.roundScorePanel);
+        
+        yPosition += 50 + elementSpacing;
+        
+        // 4. Poker Hand Panel - Hiển thị poker hand hiện tại
+        this.pokerHandPanel = this.createPokerHandPanel(0, yPosition, width - 2 * panelPadding, 120);
+        this.add(this.pokerHandPanel);
+        
+        yPosition += 120 + elementSpacing;
+        
+        // 5. Run Info and Options Buttons
+        const buttonWidth = (width - 2 * panelPadding - elementSpacing) / 2;
+        
+        this.runInfoButton = new Button(this.scene, {
+            x: -buttonWidth/2 - elementSpacing/2,
+            y: yPosition + 40,
+            width: buttonWidth,
+            height: 80,
+            text: 'Run\nInfo',
+            backgroundColor: this.redButtonColor,
+            textColor: this.textColor,
+            fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM,
+        });
+        this.add(this.runInfoButton);
+        
+        this.optionsButton = new Button(this.scene, {
+            x: buttonWidth/2 + elementSpacing/2,
+            y: yPosition + 40,
+            width: buttonWidth,
+            height: 80,
+            text: 'Options',
+            backgroundColor: this.yellowButtonColor,
+            textColor: this.textColor,
+            fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM,
+        });
+        this.add(this.optionsButton);
+        
+        yPosition += 85 + elementSpacing;
+        
+        // 6. Hands and Discards Display
+        const smallDisplayWidth = (width - 2 * panelPadding - elementSpacing) / 2;
+        
+        this.handsDisplay = this.createCounterDisplay(
+            -smallDisplayWidth/2 - elementSpacing/2, 
+            yPosition + 25, 
+            smallDisplayWidth, 
+            60, 
+            'Hands', 
+            '0'
+        );
+        this.add(this.handsDisplay);
+        
+        this.discardsDisplay = this.createCounterDisplay(
+            smallDisplayWidth/2 + elementSpacing/2, 
+            yPosition + 25, 
+            smallDisplayWidth, 
+            60, 
+            'Discards', 
+            '0'
+        );
+        this.add(this.discardsDisplay);
+        
+        yPosition += 60 + elementSpacing;
+        
+        // 7. Money Display
+        this.moneyDisplay = this.createMoneyDisplay(0, yPosition + 25, width - 2 * panelPadding, 60, '$0');
+        this.add(this.moneyDisplay);
+        
+        yPosition += 60 + elementSpacing;
+        
+        // 8. Ante and Round Display
+        const smallDisplay2Width = (width - 2 * panelPadding - elementSpacing) / 2;
+        
+        this.anteDisplay = this.createCounterDisplay(
+            -smallDisplay2Width/2 - elementSpacing/2, 
+            yPosition + 25, 
+            smallDisplay2Width, 
+            60, 
+            'Ante', 
+            '1/8'
+        );
+        this.add(this.anteDisplay);
+        
+        this.roundDisplay = this.createCounterDisplay(
+            smallDisplay2Width/2 + elementSpacing/2, 
+            yPosition + 25, 
+            smallDisplay2Width, 
+            60, 
+            'Round', 
+            '1'
+        );
+        this.add(this.roundDisplay);
+    }
+
+    private createTitleBar(x: number, y: number, width: number, height: number): RoundedContainer {
+        // Tạo rounded container cho title bar
+        const container = new RoundedContainer(this.scene, {
+            x: x,
+            y: y + height/2,
+            width: width,
+            height: height,
+            backgroundColor: this.titleBarColor,
+            radius: 8
+        });
+        
+        // Text
+        this.titleText = createThemedText(
+            this.scene, 
+            0, -4,
+            'Small Blind',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.LARGE,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(this.titleText);
+        
+        return container;
+    }
+
+    private createScorePanel(x: number, y: number, width: number, height: number): RoundedContainer {
+        // Tạo rounded container cho score panel
+        const container = new RoundedContainer(this.scene, {
+            x: x,
+            y: y + height/2,
+            width: width,
+            height: height,
+            backgroundColor: this.scoreContainerColor,
+            radius: 8
+        });
+        
+        // Blind Icon
+        const blindIcon = this.scene.add.image(-width/2 + 40, 0, 'icons', 'blind');
+        blindIcon.setScale(0.8);
+        container.add(blindIcon);
+        
+        // Tạo container con cho score display
+        const scoreContainerWidth = 160;
+        const scoreContainerHeight = height - 60;
+        const scoreContainerMarginRight = 6;
+        
+        this.targetScoreContainer = new RoundedContainer(this.scene, {
+            x: width/2 - scoreContainerWidth/2 - scoreContainerMarginRight,
+            y: 0,
+            width: scoreContainerWidth,
+            height: scoreContainerHeight,
+            backgroundColor: this.scoreDisplayColor,
+            radius: 8
+        });
+        
+        // "Score at least" text
+        const scoreAtLeastText = createThemedText(
+            this.scene, 
+            0, -scoreContainerHeight/3,
+            'Score at least',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.TINY,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        this.targetScoreContainer.add(scoreAtLeastText);
+        
+        // Chip icon
+        this.targetChipIcon = this.scene.add.image(
+            -30,
+            0,
+            'chips',
+            'white.png'
+        );
+        this.targetChipIcon.setScale(0.5);
+        this.targetScoreContainer.add(this.targetChipIcon);
+        
+        // Target score
+        this.targetScoreText = createThemedText(
+            this.scene, 
+            10, -4,
+            '300',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.LARGE,
+                color: this.scoreColor,
+                origin: { x: 0, y: 0.5 }
+            }
+        );
+        this.targetScoreContainer.add(this.targetScoreText);
+        
+        // Reward text và Money trong một dòng
+        this.rewardContainer = new Phaser.GameObjects.Container(
+            this.scene,
+            0,
+            scoreContainerHeight/3
         );
         
-        // Create title label
-        this.titleText = createBBCodeText(this.scene, 0, 0, this.displayData.name, {
-            fontSize: '24px',
-            color: this.whiteTextColor,
-            fixedWidth: config.width,
-            fixedHeight: 50,
-            halign: 'center',
-            valign: 'center'
-        });
+        // Reward text (màu trắng)
+        this.rewardText = createThemedText(
+            this.scene, 
+            -30, 0,
+            'Reward:',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.TINY,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        this.rewardContainer.add(this.rewardText);
         
-        const titleLabel = createLabel(this.scene, this.titleText, {
-            background: this.scene.add.rectangle(0, 0, 0, 0, this.lightBlueColor),
-            space: { left: 20, right: 20, top: 10, bottom: 10 },
-            align: 'center',
-            height: 50
-        });
+        // Money text (màu moneyColor)
+        this.moneyRewardText = createThemedText(
+            this.scene, 
+            30, -2,
+            '$$$',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM,
+                color: this.moneyColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        this.rewardContainer.add(this.moneyRewardText);
         
-        // Create content sizer
-        const contentSizer = this.scene.rexUI.add.sizer({
-            orientation: 'vertical',
-            space: { item: 10, left: 10, right: 10, top: 10, bottom: 10 }
-        });
+        // Thêm reward container vào target score container
+        this.targetScoreContainer.add(this.rewardContainer);
         
-        // Create blind info panel
-        const blindInfoPanel = this.createBlindInfoPanel(config.width - 20);
-        contentSizer.add(blindInfoPanel, 0, 'center', { top: 10, bottom: 10 }, false);
+        // Thêm target score container vào container chính
+        container.add(this.targetScoreContainer);
         
-        // Create score panel
-        const scorePanel = this.createScorePanel(config.width - 20);
-        contentSizer.add(scorePanel, 0, 'center', { top: 5, bottom: 5 }, false);
+        // Căn giữa ban đầu
+        this.centerTargetScoreElements();
+        this.centerRewardElements();
         
-        // Create multiplier panel
-        const multiplierPanel = this.createMultiplierPanel(config.width - 20);
-        contentSizer.add(multiplierPanel, 0, 'center', { top: 5, bottom: 5 }, false);
-        
-        // Create bottom panel with buttons and stats
-        const bottomPanel = this.createButtonsAndStats(config.width - 20);
-        contentSizer.add(bottomPanel, 1, 'center', { top: 5, bottom: 10 }, false);
-        
-        // Layout content sizer
-        contentSizer.layout();
-        
-        // Thêm vào main panel
-        this.mainPanel.add(titleLabel, 0, 'center', { top: 0 }, false);
-        this.mainPanel.add(contentSizer, 1, 'center', { top: 0, bottom: 0, left: 0, right: 0 }, true);
-        
-        // Layout main panel
-        this.mainPanel.layout();
-        this.add(this.mainPanel);
+        return container;
     }
 
-    private createBlindInfoPanel(width: number): UIPlugin.Sizer {
-        // Tạo blind info container trước
-        const blindInfoContainer = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
+    private centerTargetScoreElements(): void {
+        if (!this.targetScoreText || !this.targetChipIcon || !this.targetScoreContainer) {
+            return;
+        }
+        
+        // Lấy chiều rộng của text hiện tại
+        const textWidth = this.targetScoreText.width;
+        
+        // Lấy chiều rộng của chip icon
+        const iconWidth = this.targetChipIcon.width * this.targetChipIcon.scaleX;
+        
+        // Tính toán tổng chiều rộng của cả text và icon (cộng thêm khoảng cách 5px giữa chúng)
+        const totalWidth = textWidth + iconWidth + 5;
+        
+        // Đặt vị trí chip icon sao cho nó nằm bên trái của trung tâm
+        this.targetChipIcon.x = -totalWidth / 2 + iconWidth / 2;
+        
+        // Đặt vị trí text sao cho nó nằm bên phải của trung tâm
+        this.targetScoreText.x = this.targetChipIcon.x + iconWidth / 2 + 5 + textWidth / 2;
+        this.targetScoreText.setOrigin(0.5, 0.5); // Đảm bảo origin là center
+    }
+
+    private centerRewardElements(): void {
+        if (!this.rewardText || !this.moneyRewardText || !this.rewardContainer) {
+            return;
+        }
+        
+        // Lấy chiều rộng của các text
+        const rewardTextWidth = this.rewardText.width;
+        const moneyTextWidth = this.moneyRewardText.width;
+        
+        // Tính toán tổng chiều rộng (cộng thêm khoảng cách 10px giữa chúng)
+        const totalWidth = rewardTextWidth + moneyTextWidth + 10;
+        
+        // Đặt vị trí reward text sao cho nó nằm bên trái của trung tâm
+        this.rewardText.x = -totalWidth / 2 + rewardTextWidth / 2;
+        
+        // Đặt vị trí money text sao cho nó nằm bên phải của trung tâm
+        this.moneyRewardText.x = this.rewardText.x + rewardTextWidth / 2 + 10 + moneyTextWidth / 2;
+    }
+
+    private createRoundScorePanel(x: number, y: number, width: number, height: number): RoundedContainer {
+        // Tạo rounded container cho round score panel
+        const container = new RoundedContainer(this.scene, {
+            x: x,
+            y: y + height/2,
             width: width,
-            height: 120,
-            space: { item: 20, left: 10, right: 10 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkBlueColor)
-            .setStrokeStyle(0));
-        
-        // Tạo blind icon
-        const blindIcon = this.scene.rexUI.add.roundRectangle(0, 0, 80, 80, 40, 0x2139A1) as any;
-        blindIcon.setStrokeStyle(2, this.lightBlueColor);
-        
-        const blindIconText = createBBCodeText(this.scene, 0, 0, 'SMALL\nBLIND', {
-            fontSize: '14px',
-            color: this.whiteTextColor,
-            align: 'center',
-            fixedWidth: 70,
-            fixedHeight: 70,
-            halign: 'center',
-            valign: 'center'
+            height: height,
+            backgroundColor: this.scoreDisplayColor,
+            radius: 8
         });
         
-        const blindIconLabel = createLabel(this.scene, blindIconText, {
-            background: blindIcon,
-            space: { left: 5, right: 5, top: 5, bottom: 5 },
-            align: 'center'
+        // "Round score" text
+        const roundScoreText = createThemedText(
+            this.scene, 
+            -width/2 + 40, 0,
+            'Round\nscore',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.SMALL,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(roundScoreText);
+        
+        // Tạo container con cho score display
+        const scoreContainerMarginRight = 6;
+        const scoreContainerWidth = width * 2 /  3;
+        const scoreContainerHeight = height - 10;
+        
+        this.scoreDisplayContainer = new RoundedContainer(this.scene, {
+            x: width/2 - scoreContainerWidth/2 - scoreContainerMarginRight,
+            y: 0,
+            width: scoreContainerWidth,
+            height: scoreContainerHeight,
+            backgroundColor: 0x2F3238,
+            radius: 8
         });
         
-        // Tạo target score panel
-        const targetScorePanel = this.scene.rexUI.add.sizer({
-            orientation: 'vertical',
-            space: { item: 5, left: 10, right: 10, top: 10, bottom: 10 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, 0x151617)
-            .setStrokeStyle(1, 0x333333));
+        // Thêm chip icon
+        this.chipIcon = this.scene.add.image(
+            -10,
+            0,
+            'chips',
+            'white.png'
+        );
+        this.chipIcon.setScale(0.5);
+        this.scoreDisplayContainer.add(this.chipIcon);
         
-        // Thêm các đối tượng vào target score panel
-        const scoreLabel = createBBCodeText(this.scene, 0, 0, 'Score at least', {
-            fontSize: '16px',
-            color: this.whiteTextColor
-        });
+        // Thêm text điểm số
+        this.currentScoreText = createThemedText(
+            this.scene, 
+            10, -4,
+            '23',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.LARGE,
+                color: this.textColor,
+                origin: { x: 0, y: 0.5 }
+            }
+        );
+        this.scoreDisplayContainer.add(this.currentScoreText);
         
-        // Tạo score row sizer trước
-        const scoreRow = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
-            space: { item: 10 }
-        });
+        // Thêm container con vào container chính
+        container.add(this.scoreDisplayContainer);
         
-        // Sau đó tạo và thêm chip icon và score text
-        const chipIcon = this.scene.add.sprite(0, 0, 'chips', 'white.png');
-        chipIcon.setScale(0.5);
+        // Căn giữa các phần tử ban đầu
+        this.centerScoreElements();
         
-        this.targetScoreText = createBBCodeText(this.scene, 0, 0, this.displayData.targetScore.toString(), {
-            fontSize: '30px',
-            color: '#FF4440'
-        });
-        
-        scoreRow.add(chipIcon, 0, 'center', 0, false)
-               .add(this.targetScoreText, 0, 'center', 0, false);
-        
-        // Layout score row
-        scoreRow.layout();
-        
-        const rewardText = createBBCodeText(this.scene, 0, 0, 'Reward: $$$', {
-            fontSize: '16px',
-            color: this.goldColor
-        });
-        
-        // Thêm vào panel
-        targetScorePanel
-            .add(scoreLabel, 0, 'center', 0, false)
-            .add(scoreRow, 0, 'center', 0, false)
-            .add(rewardText, 0, 'center', 0, false);
-        
-        // Layout target score panel
-        targetScorePanel.layout();
-        
-        // Thêm vào container chính
-        blindInfoContainer
-            .add(blindIconLabel, 0, 'center', 0, false) 
-            .add(targetScorePanel, 1, 'center', 0, false);
-        
-        // Layout blind info container
-        blindInfoContainer.layout();
-        
-        return blindInfoContainer;
+        return container;
     }
 
-    private createScorePanel(width: number): UIPlugin.Sizer {
-        // Tạo score panel trước
-        const scorePanel = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
+    private centerScoreElements(): void {
+        if (!this.currentScoreText || !this.chipIcon || !this.scoreDisplayContainer) {
+            return;
+        }
+        
+        // Lấy chiều rộng của text hiện tại
+        const textWidth = this.currentScoreText.width;
+        
+        // Lấy chiều rộng của chip icon
+        const iconWidth = this.chipIcon.width * this.chipIcon.scaleX;
+        
+        // Tính toán tổng chiều rộng của cả text và icon (cộng thêm khoảng cách 5px giữa chúng)
+        const totalWidth = textWidth + iconWidth + 5;
+        
+        // Đặt vị trí chip icon sao cho nó nằm bên trái của trung tâm
+        this.chipIcon.x = -totalWidth / 2 + iconWidth / 2;
+        
+        // Đặt vị trí text sao cho nó nằm bên phải của trung tâm
+        this.currentScoreText.x = this.chipIcon.x + iconWidth / 2 + 5 + textWidth / 2;
+        this.currentScoreText.setOrigin(0.5, 0.5); // Đảm bảo origin là center
+    }
+
+    private createPokerHandPanel(x: number, y: number, width: number, height: number): RoundedContainer {
+        // Tạo rounded container cho poker hand panel
+        const container = new RoundedContainer(this.scene, {
+            x: x,
+            y: y + height/2,
             width: width,
-            height: 60,
-            space: { item: 20, left: 20, right: 20 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkGrayColor)
-            .setStrokeStyle(1, 0xFFFFFF));
-        
-        // Sau đó tạo và thêm các đối tượng con
-        const scoreLabel = createBBCodeText(this.scene, 0, 0, 'Round\nscore', {
-            fontSize: '18px',
-            color: this.whiteTextColor,
-            align: 'center',
-            halign: 'center'
+            height: height,
+            backgroundColor: this.scoreDisplayColor,
+            radius: 8
         });
         
-        this.currentScoreText = createBBCodeText(this.scene, 0, 0, this.displayData.currentScore.toString(), {
-            fontSize: '32px',
-            color: this.lightBlueTextColor,
-            align: 'center',
-            halign: 'center'
+        // Poker hand name
+        this.pokerHandText = createThemedText(
+            this.scene, 
+            0, -height/4,
+            'Pair lvl.1',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.LARGE,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(this.pokerHandText);
+        
+        // Chips display (left)
+        const chipsBox = new RoundedContainer(this.scene, {
+            x: -width/4 - 5,
+            y: height/5,
+            width: width/2 - 30,
+            height: height/2 - 10,
+            backgroundColor: this.redButtonColor,
+            radius: 8
         });
         
-        // Tạo các label và thêm vào panel
-        const scoreLabelWrap = createLabel(this.scene, scoreLabel, {
-            align: 'center'
+        // Chips value
+        this.chipsValueText = createThemedText(
+            this.scene, 
+            0, -4,
+            '10',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM_LARGE,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        chipsBox.add(this.chipsValueText);
+        container.add(chipsBox);
+        
+        // Thêm text "X" ở giữa để thể hiện phép nhân
+        const multiplySymbol = createThemedText(
+            this.scene, 
+            0, height/5,
+            'X',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.LARGE,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(multiplySymbol);
+        
+        // Multiplier display (right)
+        const multiplierBox = new RoundedContainer(this.scene, {
+            x: width/4 + 5,
+            y: height/5,
+            width: width/2 - 30,
+            height: height/2 - 10,
+            backgroundColor: this.blueButtonColor,
+            radius: 8
         });
         
-        const scoreTextWrap = createLabel(this.scene, this.currentScoreText, {
-            align: 'center'
-        });
+        // Multiplier value
+        this.multiplierText = createThemedText(
+            this.scene, 
+            0, -4,
+            '2',
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.MEDIUM_LARGE,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        multiplierBox.add(this.multiplierText);
+        container.add(multiplierBox);
         
-        scorePanel
-            .add(scoreLabelWrap, 1, 'center', 0, false)
-            .add(scoreTextWrap, 3, 'center', 0, false);
-        
-        // Layout score panel
-        scorePanel.layout();
-        
-        return scorePanel;
+        return container;
     }
 
-    private createMultiplierPanel(width: number): UIPlugin.Sizer {
-        // Tạo multiplier panel trước
-        const multiplierPanel = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
+    private createCounterDisplay(x: number, y: number, width: number, height: number, label: string, value: string): RoundedContainer {
+        // Tạo rounded container cho counter display
+        const container = new RoundedContainer(this.scene, {
+            x: x,
+            y: y,
             width: width,
-            height: 60,
-            space: { item: 5, left: 10, right: 10 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkGrayColor)
-            .setStrokeStyle(1, 0xFFFFFF));
-        
-        // Tạo các thành phần nội dung
-        const multiplierBox = this.scene.add.rectangle(0, 0, 40, 40, 0x333333)
-            .setStrokeStyle(1, 0x666666);
-        
-        this.multiplierText = createBBCodeText(this.scene, 0, 0, `${this.displayData.multiplierLeft}x  ${this.displayData.multiplierRight}x`, {
-            fontSize: '24px',
-            color: this.orangeColor
+            height: height,
+            backgroundColor: this.scoreDisplayColor,
+            radius: 8
         });
         
-        const multiplierLabel = createLabel(this.scene, this.multiplierText, {
-            background: multiplierBox,
-            align: 'center'
-        });
+        // Label
+        const labelText = createThemedText(
+            this.scene, 
+            0, -height/2 + 10,
+            label,
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.TINY,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(labelText);
         
-        multiplierPanel.add(multiplierLabel, 1, 'center', 0, false);
+        // Value
+        const valueText = createThemedText(
+            this.scene, 
+            0, 5,
+            value,
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.LARGE,
+                color: this.textColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(valueText);
         
-        // Layout multiplier panel
-        multiplierPanel.layout();
+        // Lưu trữ tham chiếu đến valueText
+        if (label === 'Hands') {
+            this.handsValueText = valueText;
+        } else if (label === 'Discards') {
+            this.discardsValueText = valueText;
+        } else if (label === 'Ante') {
+            this.anteValueText = valueText;
+        } else if (label === 'Round') {
+            this.roundValueText = valueText;
+        }
         
-        return multiplierPanel;
+        return container;
     }
 
-    private createButtonsAndStats(width: number): UIPlugin.Sizer {
-        // Tạo bottom panel trước
-        const bottomPanel = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
+    private createMoneyDisplay(x: number, y: number, width: number, height: number, value: string): RoundedContainer {
+        // Tạo rounded container cho money display
+        const container = new RoundedContainer(this.scene, {
+            x: x,
+            y: y,
             width: width,
-            height: 160,
-            space: { item: 10, left: 10, right: 10 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, this.darkGrayColor)
-            .setStrokeStyle(1, 0xFFFFFF));
-        
-        // Tạo sizer cho các nút
-        const buttonsSizer = this.scene.rexUI.add.sizer({
-            orientation: 'vertical',
-            space: { item: 10, top: 10, bottom: 10 }
+            height: height,
+            backgroundColor: this.scoreDisplayColor,
+            radius: 8
         });
         
-        // Thêm các nút
-        const button1 = this.createButton('ANTE UP', 0xB8321E);
-        const button2 = this.createButton('CASH OUT', 0x00619D);
+        // Money value
+        this.moneyValueText = createThemedText(
+            this.scene, 
+            0, -4,
+            value,
+            { 
+                fontSize: THEME_CONFIG.FONTS.SIZES.XLARGE,
+                color: this.moneyColor,
+                origin: { x: 0.5, y: 0.5 }
+            }
+        );
+        container.add(this.moneyValueText);
         
-        buttonsSizer.add(button1, 0, 'center', 0, false)
-                    .add(button2, 0, 'center', 0, false);
-        
-        // Layout buttons sizer
-        buttonsSizer.layout();
-        
-        // Tạo stats panel
-        const statsPanel = this.scene.rexUI.add.sizer({
-            orientation: 'vertical',
-            space: { item: 5, left: 10, right: 10, top: 10, bottom: 10 }
-        })
-        .addBackground(this.scene.add.rectangle(0, 0, 0, 0, 0x222222));
-        
-        // Thêm các thông tin sử dụng .toString() để chuyển đổi số thành chuỗi
-        const hands = this.displayData.hands.toString();
-        const [handsItem, handsValueText] = this.createStatsItem('Hands', hands, this.whiteTextColor, false);
-        this.handsText = handsValueText;
-        
-        const discards = this.displayData.discards.toString();
-        const [discardsItem, discardsValueText] = this.createStatsItem('Discards', discards, this.whiteTextColor, false);
-        this.discardsText = discardsValueText;
-        
-        const money = this.displayData.money.toString();
-        const [moneyItem, moneyValueText] = this.createStatsItem('Money', money, this.goldColor, true);
-        this.moneyText = moneyValueText;
-        
-        const ante = this.displayData.ante.toString();
-        const [anteItem, anteValueText] = this.createStatsItem('Ante', ante, this.redColor, true);
-        this.anteText = anteValueText;
-        
-        const round = `${this.displayData.round}/${this.displayData.totalAntes}`;
-        const [roundItem, roundValueText] = this.createStatsItem('Round', round, this.whiteTextColor, false);
-        this.roundText = roundValueText;
-        
-        statsPanel
-            .add(handsItem, 0, 'center', { bottom: 3 }, false)
-            .add(discardsItem, 0, 'center', { bottom: 3 }, false)
-            .add(moneyItem, 0, 'center', { bottom: 3 }, false)
-            .add(anteItem, 0, 'center', { bottom: 3 }, false)
-            .add(roundItem, 0, 'center', 0, false);
-        
-        // Layout stats panel
-        statsPanel.layout();
-        
-        // Thêm vào bottom panel
-        bottomPanel
-            .add(buttonsSizer, 1, 'left', { left: 5 }, false)
-            .add(statsPanel, 1, 'center', 0, false);
-        
-        // Layout bottom panel
-        bottomPanel.layout();
-        
-        return bottomPanel;
-    }
-
-    private createButton(
-        text: string,
-        color: number,
-        callback?: () => void
-    ): UIPlugin.Label {
-        const buttonBg = this.scene.rexUI.add.roundRectangle(0, 0, 160, 40, 10, color);
-        
-        const buttonText = createBBCodeText(this.scene, 0, 0, text, {
-            fontSize: '20px',
-            color: '#FFFFFF',
-            halign: 'center'
-        });
-        
-        const button = createLabel(this.scene, buttonText, {
-            background: buttonBg,
-            space: { left: 10, right: 10, top: 5, bottom: 5 },
-            align: 'center'
-        });
-        
-        // Thêm tính chất tương tác
-        button.setInteractive({ useHandCursor: true })
-              .on('pointerover', () => {
-                  buttonBg.setStrokeStyle(2, 0xffffff);
-              })
-              .on('pointerout', () => {
-                  buttonBg.setStrokeStyle(0);
-              })
-              .on('pointerdown', () => {
-                  if (callback) callback();
-              });
-        
-        return button;
-    }
-
-    private createStatsItem(
-        label: string, 
-        value: string, 
-        color: string | number,
-        isMoney: boolean = false
-    ): [UIPlugin.Sizer, UIPlugin.BBCodeText] {
-        // Tạo sizer trước
-        const statsItem = this.scene.rexUI.add.sizer({
-            orientation: 'horizontal',
-            space: { item: 10 }
-        });
-        
-        // Tạo các thành phần text
-        const labelText = createBBCodeText(this.scene, 0, 0, label, {
-            fontSize: '16px',
-            color: this.whiteTextColor,
-            halign: 'left'
-        });
-        
-        // Chuyển đổi value thành chuỗi
-        let valueString = value;
-        if (isMoney) valueString = '$' + valueString;
-        
-        const valueText = createBBCodeText(this.scene, 0, 0, valueString, {
-            fontSize: '16px',
-            color: color,
-            halign: 'right'
-        });
-        
-        // Thêm vào sizer
-        statsItem
-            .add(labelText, 3, 'left', 0, false)
-            .add(valueText, 2, 'right', 0, false);
-        
-        // Layout stats item
-        statsItem.layout();
-        
-        return [statsItem, valueText];
+        return container;
     }
 
     /**
-     * Update panel data
+     * Cập nhật thông tin về blind hiện tại
      */
-    public updatePanel(data: Partial<BlindDisplayData>): void {
-        // Cập nhật dữ liệu
-        this.displayData = { ...this.displayData, ...data };
+    public updateBlind(name: string, chips: number): void {
+        // Cập nhật tiêu đề và icon blind
+        this.titleText.setText(name);
         
-        // Cập nhật các hiển thị
-        if (data.name) this.titleText.setText(data.name);
-        if (data.targetScore) this.targetScoreText.setText(data.targetScore.toString());
-        if (data.currentScore !== undefined) this.currentScoreText.setText(data.currentScore.toString());
-        if (data.multiplierLeft !== undefined || data.multiplierRight !== undefined) {
-            this.multiplierText.setText(`${this.displayData.multiplierLeft}x  ${this.displayData.multiplierRight}x`);
-        }
-        if (data.hands) this.handsText.setText(data.hands.toString());
-        if (data.discards) this.discardsText.setText(data.discards.toString());
-        if (data.money) this.moneyText.setText('$' + data.money.toString());
-        if (data.ante) this.anteText.setText('$' + data.ante.toString());
-        if (data.round !== undefined || data.totalAntes !== undefined) {
-            this.roundText.setText(`${this.displayData.round}/${this.displayData.totalAntes}`);
-        }
+        // Cập nhật target score
+        this.targetScoreText.setText(chips.toString());
         
-        // Layout để cập nhật hiển thị
-        this.layoutAll();
-
-        console.log('updatePanel', data);
+        // Căn giữa lại các phần tử sau khi cập nhật target score
+        this.centerTargetScoreElements();
     }
 
     /**
-     * Layout all UI components
-     */
-    public layoutAll(): void {
-        // Layout main panel
-        if (this.mainPanel) {
-            this.mainPanel.layout();
-        }
-    }
-
-    /**
-     * Update score display
+     * Cập nhật thông tin về điểm
      */
     public updateScore(score: number): void {
-        this.updatePanel({
-            currentScore: score
-        });
-    }
-
-    /**
-     * Update blind type and target score
-     */
-    public updateBlind(blindType: BlindType, name: string, targetScore: number): void {
-        this.updatePanel({
-            name,
-            targetScore
-        });
+        // Cập nhật điểm hiện tại
+        this.currentScoreText.setText(score.toString());
         
-        // Thêm xử lý UI cập nhật theo loại blind nếu cần
-        // ...
+        // Căn giữa lại các phần tử sau khi cập nhật text
+        this.centerScoreElements();
     }
 
     /**
-     * Update multiplier display
+     * Cập nhật thông tin ante và round
      */
-    public updateMultiplier(left: number, right: number): void {
-        this.updatePanel({
-            multiplierLeft: left,
-            multiplierRight: right
-        });
+    public updateAnteAndRound(currentAnte: number, totalAntes: number, currentRound: number): void {
+        // Cập nhật ante
+        this.anteValueText.setText(`${currentAnte}/${totalAntes}`);
+        
+        // Cập nhật round
+        this.roundValueText.setText(currentRound.toString());
     }
 
     /**
-     * Update hands and discards display
+     * Cập nhật thông tin hands và discards còn lại
      */
     public updateHandsAndDiscards(hands: number, discards: number): void {
-        this.updatePanel({
-            hands: hands,
-            discards: discards
-        });
+        // Cập nhật hands
+        this.handsValueText.setText(hands.toString());
+        
+        // Cập nhật discards
+        this.discardsValueText.setText(discards.toString());
     }
 
     /**
-     * Update money display
+     * Cập nhật số tiền hiện tại
      */
     public updateMoney(money: number): void {
-        this.updatePanel({
-            money: money
-        });
+        // Cập nhật money ở display chính
+        this.moneyValueText.setText(`$${money}`);
+        
+        // Cập nhật money ở reward display nếu cần
+        if (this.moneyRewardText) {
+            this.moneyRewardText.setText(`$${money}`);
+            this.centerRewardElements();
+        }
     }
-
-    /**
-     * Update ante and round display
-     */
-    public updateAnteAndRound(ante: number, totalAntes: number, round: number): void {
-        this.updatePanel({
-            ante: ante,
-            totalAntes: totalAntes,
-            round: round
-        });
-    }
-} 
+}

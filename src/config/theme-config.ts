@@ -36,6 +36,7 @@ export const THEME_CONFIG = {
             SMALL: 18,
             MEDIUM: 24,
             LARGE: 32,
+            MEDIUM_LARGE: 36,
             XLARGE: 48
         }
     },

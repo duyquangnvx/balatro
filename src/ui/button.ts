@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { THEME_CONFIG } from '../config/theme-config';
+import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin';
 
 export interface ButtonConfig {
     // Vị trí và kích thước
@@ -47,7 +48,7 @@ export interface ButtonConfig {
 
 export class Button extends Phaser.GameObjects.Container {
     // Các phần tử cấu thành button
-    private background: any; // RexUI RoundRectangle
+    private background: UIPlugin.RoundRectangle;
     private textObject: Phaser.GameObjects.BitmapText | null = null;
     private iconObject: Phaser.GameObjects.Image | null = null;
     

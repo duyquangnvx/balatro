@@ -187,3 +187,4 @@ export class ActionPanel extends Phaser.GameObjects.Container {
         this.discardButton.setBackgroundColor(hasSelectedCards ? this.activeDiscardColor : this.inactiveButtonColor);
     }
 } 
+
